@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .lang import t as _t
 from .safefs import TMP_PREFIX, claim_name, clean_name, unique_path
 from .sender import PEERS
 
@@ -98,33 +99,33 @@ def make_handler(dev: Device, on_file, on_event):
                 while True:
                     line = self.rfile.readline()
                     if not line.endswith(b"\n"):
-                        raise IncompleteBody("chunked 長度列不完整")
+                        raise IncompleteBody(_t("ls.chunk_len_cut"))
                     try:
                         size = int(line.strip().split(b";")[0], 16)
                     except ValueError:
-                        raise IncompleteBody("chunked 長度格式錯誤") from None
+                        raise IncompleteBody(_t("ls.chunk_len_bad")) from None
                     if size == 0:
                         while True:              # trailer 直到空白行
                             t = self.rfile.readline()
                             if not t:
-                                raise IncompleteBody("缺少 chunked 結束標記")
+                                raise IncompleteBody(_t("ls.chunk_no_end"))
                             if t in (b"\r\n", b"\n"):
                                 return
                     left = size
                     while left:
                         b = self.rfile.read(min(CHUNK, left))
                         if not b:
-                            raise IncompleteBody("chunk 內容不完整")
+                            raise IncompleteBody(_t("ls.chunk_body_cut"))
                         left -= len(b)
                         yield b
                     if self.rfile.readline() not in (b"\r\n", b"\n"):
-                        raise IncompleteBody("chunk 結尾不完整")
+                        raise IncompleteBody(_t("ls.chunk_tail_cut"))
             else:
                 left = int(self.headers.get("Content-Length") or 0)
                 while left > 0:
                     b = self.rfile.read(min(CHUNK, left))
                     if not b:
-                        raise IncompleteBody(f"還差 {left} 位元組")
+                        raise IncompleteBody(_t("ls.bytes_left", n=left))
                     left -= len(b)
                     yield b
 
@@ -157,7 +158,7 @@ def make_handler(dev: Device, on_file, on_event):
                 self._read_all()
                 self._json(404, {"message": "Not found"})
             except Exception as e:  # noqa
-                log.exception("處理請求失敗")
+                log.exception(_t("log.request_failed"))
                 try:
                     self._json(500, {"message": str(e)})
                 except Exception:
@@ -177,7 +178,7 @@ def make_handler(dev: Device, on_file, on_event):
             for fid, f in files.items():
                 tokens[fid] = secrets.token_hex(16)
                 meta[fid] = f
-            sender = (req.get("info") or {}).get("alias", "手機")
+            sender = (req.get("info") or {}).get("alias", _t("common.phone"))
             with dev.lock:
                 # 清掉 1 小時以上沒動靜的舊工作階段
                 now = time.time()
@@ -191,7 +192,7 @@ def make_handler(dev: Device, on_file, on_event):
                       "files": [{"fid": k, "name": clean_name(v.get("fileName") or k),
                                  "size": v.get("size") if isinstance(v.get("size"), int) else None}
                                 for k, v in files.items()]})
-            log.info("%s 要傳 %d 個檔案到「%s」", sender, len(files), dev.alias)
+            log.info(_t("log.incoming", sender=sender, n=len(files), dev=dev.alias))
             self._json(200, {"sessionId": sid, "files": tokens})
 
         def _upload(self, q):
@@ -228,7 +229,7 @@ def make_handler(dev: Device, on_file, on_event):
             part = folder / f"{TMP_PREFIX}{secrets.token_hex(8)}.part"
             h = hashlib.sha256()
             size = 0
-            fail = None
+            fail, code = None, 400
             try:
                 with open(part, "xb") as out:
                     for b in self._iter_body():
@@ -236,21 +237,21 @@ def make_handler(dev: Device, on_file, on_event):
                         h.update(b)
                         size += len(b)
             except IncompleteBody as e:
-                fail = f"傳輸中斷（{e}）"
+                fail = _t("ls.cut", err=e)
             except OSError as e:
-                fail = f"寫入失敗（{e}）"
+                fail = _t("ls.write_failed", err=e)
             digest = h.hexdigest()
             want = (f.get("sha256") or "").lower()
             declared = f.get("size")
             if not fail and isinstance(declared, int) and declared >= 0 and declared != size:
-                fail = f"大小不符：應為 {declared}，收到 {size}"
+                fail, code = _t("ls.size_mismatch", want=declared, got=size), 422
             if not fail and want and want != digest:
-                fail = "SHA-256 不符"
+                fail, code = _t("ls.sha_mismatch"), 422
             if fail:
                 part.unlink(missing_ok=True)  # 只刪除我們自己剛寫的暫存檔
-                log.warning("%s 沒有收好：%s", name, fail)
+                log.warning(_t("log.recv_bad", name=name, why=fail))
                 on_event({"type": "upload_failed", "batch": s["batch"], "fid": fid, "name": name, "error": fail})
-                return self._json(422 if "不符" in fail else 400, {"message": fail})
+                return self._json(code, {"message": fail})
             final = claim_name(part, folder, name)  # 不覆蓋、可處理同名競爭
             # 先確實寫進收件紀錄，才算收到、才回覆手機成功
             try:
@@ -258,27 +259,27 @@ def make_handler(dev: Device, on_file, on_event):
                                            "modified": (f.get("metadata") or {}).get("modified"),
                                            "batch": s["batch"], "fid": fid, "declared": declared})
             except Exception as e:  # noqa  紀錄沒寫進去：這次不算收到，讓手機重傳
-                log.exception("登記 %s 失敗，請手機重傳", final.name)
+                log.exception(_t("log.register_failed_resend", name=final.name))
                 try:   # 只收回我們剛寫、還沒回覆成功的檔案，避免重傳後多一份
                     back = folder / f"{TMP_PREFIX}{secrets.token_hex(8)}.part"
                     os.rename(final, back)
                     back.unlink(missing_ok=True)
                 except OSError:
-                    log.warning("無法收回 %s，下次可能多一份同名檔", final.name)
-                return self._json(500, {"message": f"電腦端紀錄寫入失敗，請重傳（{e}）"})
+                    log.warning(_t("log.cannot_take_back", name=final.name))
+                return self._json(500, {"message": _t("ls.record_failed", err=e)})
             with dev.lock:
                 s["done"].add(fid)
                 s["t"] = time.time()
                 finished = len(s["done"]) == len(s["meta"])
                 if finished:
                     dev.sessions.pop(sid, None)
-            log.info("收到 %s（%.1f MB）", final.name, size / 1e6)
+            log.info(_t("log.received", name=final.name, mb=f"{size / 1e6:.1f}"))
             if finished:
                 on_event({"type": "session_done", "device": dev.alias, "count": len(s["meta"])})
             try:
                 self._json(200)
             except (ConnectionError, OSError):
-                log.warning("%s 已收到，但回覆手機時連線中斷", final.name)
+                log.warning(_t("log.reply_cut", name=final.name))
 
     return Handler
 
@@ -302,14 +303,14 @@ class TLSServer(ThreadingHTTPServer):
 
     def handle_error(self, request, client_address):
         # 手機中斷連線等情況很常見，不要在視窗印出一大串錯誤
-        log.debug("連線中斷 %s: %s", client_address, sys.exc_info()[1])
+        log.debug("connection reset %s: %s", client_address, sys.exc_info()[1])
 
     def finish_request(self, request, client_address):
         try:
             request.settimeout(60)
             request.do_handshake()
         except Exception as e:  # noqa
-            log.debug("TLS 握手失敗 %s: %s", client_address, e)
+            log.debug("TLS handshake failed %s: %s", client_address, e)
             return
         request.settimeout(None)
         super().finish_request(request, client_address)
@@ -347,7 +348,7 @@ class Discovery(threading.Thread):
                 mreq = struct.pack("4s4s", socket.inet_aton(MCAST_GRP), socket.inet_aton(ip))
                 self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
             except OSError as e:
-                log.debug("加入多播群組失敗 %s: %s", ip, e)
+                log.debug("join multicast failed %s: %s", ip, e)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
         self.peers = {}  # fingerprint -> (alias, ip, last_seen)
 
@@ -359,7 +360,7 @@ class Discovery(threading.Thread):
                     self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(ip))
                 self.sock.sendto(data, (MCAST_GRP, MCAST_PORT))
             except OSError as e:
-                log.debug("多播送出失敗 %s: %s", ip, e)
+                log.debug("multicast send failed %s: %s", ip, e)
 
     def announce(self):
         for d in self.devices:
@@ -380,7 +381,7 @@ class Discovery(threading.Thread):
                 handlers.append(urllib.request.HTTPSHandler(context=ctx))
             urllib.request.build_opener(*handlers).open(req, timeout=4).read()
         except Exception as e:  # noqa
-            log.debug("向 %s 登記失敗：%s", ip, e)
+            log.debug("register to %s failed: %s", ip, e)
         # 備援：也用 UDP 回應
         self._send(dev.info(announce=False))
 
@@ -421,7 +422,7 @@ def start(devices, on_file, on_event):
         srv = TLSServer(("0.0.0.0", d.port), make_handler(d, on_file, on_event), d)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         servers.append(srv)
-        log.info("裝置「%s」已在埠 %d 待命", d.alias, d.port)
+        log.info(_t("log.device_ready", alias=d.alias, port=d.port))
     disc = Discovery(devices)
     disc.start()
     return servers, disc

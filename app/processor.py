@@ -18,11 +18,12 @@ from . import categories as catmod
 from . import extract, geo
 from .classify import Classifier
 from .ocr import OCR, norm, snippet
-from .safefs import TMP_PREFIX, inside, is_tmp, move_exact, move_within, unique_path
+from .safefs import TMP_PREFIX, OutsideError, inside, is_tmp, move_exact, move_within, unique_path
 
 log = logging.getLogger("processor")
 
-from .config import DUP_NAME as DUP_FOLDER, OTHER_NAME as OTHER, PLAIN_NAME, ROOT, SORTED_NAME, EXPORT_TEMP
+from .config import DUP_CAT, OTHER_CAT, PLAIN_CAT, ROOT
+from .lang import reason as lang_reason, t as _t
 
 FILTER_KEYS = ("cat", "kind", "date_from", "date_to", "place")
 
@@ -83,7 +84,7 @@ class Processor:
             try:
                 self._register_plain(path, meta)
             except Exception:  # noqa  紀錄已保存為 received，重啟時會補登記
-                log.exception("登記 %s 失敗，下次啟動會再處理", path.name)
+                log.exception(_t("log.register_retry", name=path.name))
         else:
             if meta.get("batch"):
                 self.batch_pending[meta["batch"]] = self.batch_pending.get(meta["batch"], 0) + 1
@@ -92,11 +93,11 @@ class Processor:
     def _register_plain(self, path: Path, meta: dict):
         kind = extract.kind_of(path)
         taken = f"{extract.taken_date(path, meta.get('modified')):%Y-%m}"
-        fid = self.store.add(path=str(path), name=path.name, kind=kind, category=PLAIN_NAME, taken=taken,
+        fid = self.store.add(path=str(path), name=path.name, kind=kind, category=PLAIN_CAT, taken=taken,
                              sha256=meta.get("sha256"), size=meta.get("size"), mode="plain", batch=meta.get("batch"),
                              **self._geo_cols(path, kind))
         self.store.set_item(meta.get("batch"), meta.get("fid"), "indexed", file_id=fid)
-        self.event({"type": "file", "name": path.name, "category": PLAIN_NAME})
+        self.event({"type": "file", "name": path.name, "category": PLAIN_CAT})
         return fid
 
     def requeue_leftovers(self):
@@ -134,18 +135,18 @@ class Processor:
                     move_exact(d, back, self.cfg.data)
                     p = back
                 except OSError as e:
-                    log.warning("找回 %s 失敗：%s", d.name, e)
+                    log.warning(_t("log.recover_failed", name=d.name, err=e))
                     continue
             if not ok(p):
                 if p.is_file() or it["dest"]:   # 位置被別的內容占用／目的地內容不符：不能當成這個收件
-                    self.store.set_item(it["batch"], it["fid"], "error", error="找不到內容相符的檔案")
+                    self.store.set_item(it["batch"], it["fid"], "error", error=_t("err.no_matching_file"))
                 continue
             seen.add(p.resolve())
             if it["bmode"] == "plain" or inside(p, self.cfg.inbox_plain):
                 try:
                     self._register_plain(p, meta)
                 except Exception as e:  # noqa
-                    log.exception("登記 %s 失敗", p.name)
+                    log.exception(_t("log.register_failed", name=p.name))
                     self.store.set_item(it["batch"], it["fid"], "error", error=str(e))
             else:
                 self.batch_pending[it["batch"]] = self.batch_pending.get(it["batch"], 0) + 1
@@ -156,7 +157,7 @@ class Processor:
                 self.q.put(("sort", p, {}))
                 n += 1
         if n:
-            log.info("找到 %d 個上次未處理完的檔案，重新處理", n)
+            log.info(_t("log.requeue", n=n))
 
     def reindex_mismatch(self):
         """向量維度和目前模型不同的檔案重新算向量（影片片段一起重算）。"""
@@ -197,14 +198,14 @@ class Processor:
     def _set_category(self, fid: int, category: str):
         r = self.store.get(fid)
         if r is None or r["mode"] != "sort":
-            raise ValueError("只能修改「傳送並分類」的檔案")
+            raise ValueError(_t("err.only_sorted"))
         if category not in self.cfg.categories and category != self.cfg.unsorted_category:
-            raise ValueError("沒有這個類別")
+            raise ValueError(_t("err.no_such_cat"))
         src = self.store.abspath(r["path"])
         dst = move_within(src, self._folder(category, r["taken"]), self.cfg.data)
         self.store.update(fid, path=str(dst), category=category, corrected=1, duplicate_of=None,
                           reason="你手動分類", score=1.0)
-        self.event({"type": "file", "name": dst.name, "category": category, "note": "手動修改"})
+        self.event({"type": "file", "name": dst.name, "category": category, "note": "manual"})
         return str(dst)
 
     def check(self, fid: int, value: int = 1):
@@ -226,7 +227,7 @@ class Processor:
             return self.store.abspath(r["path"])
         src = self.store.abspath(r["path"])
         if not src.exists():
-            raise FileNotFoundError(f"找不到檔案：{r['name']}")
+            raise FileNotFoundError(_t("err.file_not_found_name", name=r["name"]))
         dst = move_within(src, self.cfg.removed_dir, self.cfg.data)
         self.store.update(r["id"], path=str(dst), prev_path=self.store.rel(src), removed=1)
         return dst
@@ -239,18 +240,18 @@ class Processor:
     def _dup_apply(self, keep, remove):
         keep, remove = [int(i) for i in keep], [int(i) for i in remove]
         if not keep:
-            raise ValueError("每組至少要留下一個檔案")
+            raise ValueError(_t("err.keep_one"))
         if set(keep) & set(remove):
-            raise ValueError("同一個檔案不能同時留下和移除")
+            raise ValueError(_t("err.keep_and_remove"))
         rows = {}
         for i in keep + remove:
             r = self.store.get(i)
             if r is None or r["removed"]:
-                raise ValueError("檔案已經不在了，請重新整理頁面")
+                raise ValueError(_t("err.gone_reload"))
             rows[i] = r
         for i in keep:   # 留下的檔案一定要真的還在，才可以移走其他的
             if not self.store.abspath(rows[i]["path"]).is_file():
-                raise ValueError(f"要留下的「{rows[i]['name']}」已經不在電腦上了，沒有移走任何檔案")
+                raise ValueError(_t("err.keep_missing", name=rows[i]["name"]))
         moved = 0
         for i in remove:
             self._remove(rows[i])
@@ -272,7 +273,7 @@ class Processor:
                                         r["kind"])[0]
             if cat is None:
                 cat = self.cfg.document_category if r["kind"] == "document" else (
-                    OTHER if r["kind"] == "other" else self.cfg.unsorted_category)
+                    OTHER_CAT if r["kind"] == "other" else self.cfg.unsorted_category)
             kw = dict(duplicate_of=None, category=cat, checked=1)
             if vec is not None and r["vec"] is None:
                 kw["vec"] = np.frombuffer(vec, dtype=np.float32)
@@ -318,25 +319,25 @@ class Processor:
     def _restore(self, fid):
         r = self.store.get(fid)
         if r is None or not r["removed"]:
-            raise ValueError("這個檔案不在待刪除裡")
+            raise ValueError(_t("err.not_in_removed"))
         src = self.store.abspath(r["path"])
         if not src.exists():
             self.store.forget(fid)
-            raise FileNotFoundError("檔案已經被刪除了")
+            raise FileNotFoundError(_t("err.already_deleted"))
         back = self.store.abspath(r["prev_path"]).parent if r["prev_path"] else self.cfg.data
         try:
             dst = move_within(src, back, self.cfg.data)
         except PermissionError as e:
-            if "拒絕" in str(e):
+            if isinstance(e, OutsideError):
                 raise
-            raise PermissionError("檔案正在被其他程式使用（例如開著的看圖程式），關掉後再試一次") from e
+            raise PermissionError(_t("err.in_use_retry")) from e
         dup = r["duplicate_of"]
         if dup:
             t = self.store.get(dup)
             if t is None or t["removed"]:
                 dup = None
         kw = dict(path=str(dst), removed=0, prev_path=None, duplicate_of=dup)
-        if dup is None and r["category"] == DUP_FOLDER:   # 原檔已不在，就不算重複了
+        if dup is None and r["category"] == DUP_CAT:   # 原檔已不在，就不算重複了
             kw["category"] = self.cfg.unsorted_category
             kw["path"] = str(move_within(dst, self._folder(kw["category"], r["taken"]), self.cfg.data))
         self.store.update(fid, **kw)
@@ -387,12 +388,12 @@ class Processor:
                     if extra.get("segs"):
                         self.store.set_segs(meta["id"], extra["segs"])
             except Exception as e:  # noqa
-                log.exception("處理 %s 失敗", path.name)
+                log.exception(_t("log.process_failed", name=path.name))
                 if job == "sort":
                     try:   # 資料庫還寫不進去也不能讓 worker 停掉；收件狀態留著，重啟時會再處理
                         self.store.set_item(meta.get("batch"), meta.get("fid"), "error", error=str(e))
                     except Exception:  # noqa
-                        log.exception("記錄 %s 的錯誤狀態失敗", path.name)
+                        log.exception(_t("log.record_error_failed", name=path.name))
                 self.errors.appendleft({"t": time.time(), "name": path.name, "error": str(e)})
                 self.event({"type": "error", "name": path.name, "error": str(e)})
             finally:
@@ -459,7 +460,7 @@ class Processor:
         return {"ocr": text or None, "ocr_n": norm(text) if text else None, "ocr_done": 1}
 
     def _folder(self, category, taken=None):
-        if category == OTHER:
+        if category == OTHER_CAT:
             return self.cfg.other_dir
         folder = self.cfg.sorted_dir / category
         if self.cfg.date_subfolder and taken:
@@ -479,7 +480,7 @@ class Processor:
             dst = move_within(src, self._folder(cat, r["taken"]), self.cfg.data)
             self.store.update(fid, path=str(dst), category=cat, score=conf, reason=reason,
                               second=second, second_score=second_score, checked=0)
-            log.info("重新分類 %s：%s → %s", dst.name, r["category"], cat)
+            log.info(_t("log.reclassified", name=dst.name, old=r["category"], new=cat))
         else:
             self.store.update(fid, score=conf, reason=reason, second=second, second_score=second_score)
 
@@ -494,10 +495,10 @@ class Processor:
         same = self._verified_original(sha, size)
         if same is not None:
             dst = self._move_logged(path, cfg.dup_dir, meta)
-            fid = self.store.add(path=str(dst), name=dst.name, kind=kind, category=DUP_FOLDER, sha256=sha, size=size,
+            fid = self.store.add(path=str(dst), name=dst.name, kind=kind, category=DUP_CAT, sha256=sha, size=size,
                                  mode="sort", duplicate_of=same["id"], taken=taken, reason=f"與 {same['name']} 完全相同",
                                  batch=meta.get("batch"), **self._geo_cols(dst, kind))
-            self.event({"type": "file", "name": dst.name, "category": DUP_FOLDER})
+            self.event({"type": "file", "name": dst.name, "category": DUP_CAT})
             return fid
 
         # 2) 向量（影片同時切好片段）
@@ -510,7 +511,7 @@ class Processor:
             text, done = self._text(path, kind, extra.get("text"))
             tcols = self._text_cols(text, done)
         except Exception as e:  # noqa
-            log.warning("讀取文字失敗 %s：%s", path.name, e)
+            log.warning(_t("log.text_failed", name=path.name, err=e))
             text = ""
 
         # 3) 分類
@@ -518,7 +519,7 @@ class Processor:
         if kind == "document":
             category, reason = cfg.document_category, "文件檔"
         elif vec is None:
-            category, reason = OTHER, "無法分析的檔案類型"
+            category, reason = OTHER_CAT, "無法分析的檔案類型"   # 原因存成固定代碼，顯示時翻譯（lang.reason）
         else:
             category, conf, reason, second, second_score = self.clf.classify(vec, path, kind,
                                                                              text_len=len(norm(text or "")))
@@ -547,9 +548,9 @@ class Processor:
                              second=second, second_score=second_score, batch=meta.get("batch"), **gcols, **tcols)
         if extra.get("segs"):
             self.store.set_segs(fid, extra["segs"])
-        self.event({"type": "file", "name": dst.name, "category": DUP_FOLDER if dup_of else category,
+        self.event({"type": "file", "name": dst.name, "category": DUP_CAT if dup_of else category,
                     "score": None if conf is None else round(conf, 2)})
-        log.info("%s → %s（%s）%s", dst.name, category, reason, "［疑似重複］" if dup_of else "")
+        log.info(_t("log.sorted", name=dst.name, cat=category, why=lang_reason(reason)) + (_t("log.dup_mark") if dup_of else ""))
         return fid
 
     def _move_logged(self, path: Path, folder: Path, meta: dict) -> Path:
@@ -562,7 +563,7 @@ class Processor:
                 return dst
             except FileExistsError:
                 continue
-        raise FileExistsError(f"找不到可用的檔名：{path.name}")
+        raise FileExistsError(_t("err.no_free_name", name=path.name))
 
     def _verified(self, r, sha=None, size=None) -> bool:
         """這筆索引指向的檔案真的還在、大小與內容都對（才能當作「保留的原檔」）。"""
@@ -669,9 +670,9 @@ class Processor:
         """以圖找圖：用這個檔案的向量找最像的檔案（不用載入模型）。"""
         r = self.store.get(fid)
         if r is None or r["vec"] is None:
-            raise ValueError("這個檔案還沒有建立索引，無法找相似的")
+            raise ValueError(_t("err.no_index_similar"))
         if len(r["vec"]) != self.cfg.embed_dim * 4:
-            raise ValueError("這個項目的索引是舊版本，請先在首頁按「重建索引」，完成後再找相似的")
+            raise ValueError(_t("err.old_index_similar"))
         filters = {key: filters.get(key) or "" for key in FILTER_KEYS}
         return self._ranked(np.frombuffer(r["vec"], dtype=np.float32), filters, k, exclude=[fid])
 
@@ -725,11 +726,11 @@ class Processor:
                             kw["taken"] = f"{extract.taken_date(p, fb):%Y-%m}"
                         self.store.update(fid, **kw)
                 except Exception as e:  # noqa
-                    log.debug("補讀地點失敗 %s：%s", p.name, e)
+                    log.debug("backfill place failed %s: %s", p.name, e)
                 self.geo_left -= 1
             self.geo_left = 0
             if rows:
-                log.info("已補讀 %d 個檔案的地點／日期", len(rows))
+                log.info(_t("log.backfilled", n=len(rows)))
         threading.Thread(target=run, daemon=True).start()
 
     # ------------------------------------------------ 背景補做：OCR 文字、影片片段
@@ -769,7 +770,7 @@ class Processor:
                         did = True
                 time.sleep(0.2 if did else 5)
             except Exception:  # noqa
-                log.exception("背景補做失敗")
+                log.exception(_t("log.enrich_failed"))
                 time.sleep(30)
 
     def _enrich_one(self, r, which):
@@ -795,8 +796,8 @@ class Processor:
             now = self.store.get(r["id"])
             if now is not None and now["path"] != r["path"]:
                 return          # 處理時檔案剛好被搬走（改分類），下一輪再做
-            what = "讀文字" if which == "ocr" else "切影片片段"
-            log.warning("背景%s失敗 %s：%s", what, r["name"], e)
+            what = _t("enrich.ocr") if which == "ocr" else _t("enrich.seg")
+            log.warning(_t("log.enrich_one_failed", what=what, name=r["name"], err=e))
             missing = not p.exists()
             n = self._fails[r["id"]] = self._fails.get(r["id"], 0) + 1
             if missing or n >= 2:       # 同一個檔案失敗兩次才放棄它
@@ -805,7 +806,7 @@ class Processor:
                 self._fail_run += 1
                 if self._fail_run >= 3:  # 連續好幾個檔案都失敗：多半是模型有問題，先暫停
                     self.enrich_paused = True
-                    self.enrich_error = f"{what}連續失敗，已暫停：{e}"
+                    self.enrich_error = _t("enrich.paused_err", what=what, err=e)
                     log.warning(self.enrich_error)
         finally:
             self.enrich_now = None
@@ -813,7 +814,7 @@ class Processor:
     def file_text(self, fid):
         r = self.store.get(fid)
         if r is None:
-            raise ValueError("找不到檔案")
+            raise ValueError(_t("chk.not_found"))
         return {"text": r["ocr"] or "", "done": r["ocr_done"], "segs": self.store.seg_count(fid)}
 
     # ------------------------------------------------ 自訂類別
@@ -838,7 +839,7 @@ class Processor:
         """改描述／圖示；new_name 不同時一併改名（資料夾裡的檔案跟著搬）。"""
         with self.op_lock:
             if name not in self.cfg.categories:
-                raise ValueError("沒有這個類別")
+                raise ValueError(_t("err.no_such_cat"))
             moved, failed = 0, []
             if new_name is not None and new_name.strip() != name:
                 new_name = catmod.check_name(self.cfg, new_name, old=name)
@@ -857,7 +858,7 @@ class Processor:
         kw = {"category": new_cat}
         if r["removed"]:
             pp = Path(r["prev_path"] or "")
-            if len(pp.parts) >= 2 and pp.parts[0] == SORTED_NAME:  # 移回時要回到新的類別資料夾
+            if len(pp.parts) >= 2 and pp.parts[0] == self.cfg.names["sorted"]:  # 移回時要回到新的類別資料夾
                 kw["prev_path"] = str(self._folder(new_cat, r["taken"]).relative_to(self.cfg.data) / pp.name)
             self.store.update(r["id"], **kw)
             return False, None
@@ -872,7 +873,7 @@ class Processor:
             dst = move_within(src, self._folder(new_cat, r["taken"]), self.cfg.data)
         except OSError as e:   # 搬不動（例如檔案開著）：類別照改，檔案先留在原資料夾
             self.store.update(r["id"], **kw)
-            return False, f"{r['name']}（{'檔案正在被其他程式使用' if isinstance(e, PermissionError) else e}）"
+            return False, r["name"] + _t("chk.paren", text=_t("err.in_use") if isinstance(e, PermissionError) else e)
         kw["path"] = str(dst)
         self.store.update(r["id"], **kw)
         return True, None
@@ -920,13 +921,13 @@ class Processor:
         """刪除類別：裡面的檔案改成「未分類」並搬到未分類資料夾，不刪除任何檔案。"""
         with self.op_lock:
             if name not in self.cfg.categories:
-                raise ValueError("沒有這個類別")
+                raise ValueError(_t("err.no_such_cat"))
             if name == self.cfg.document_category:
-                raise ValueError(f"「{name}」用來放 PDF、Word 等文件，不能刪除，可以改名")
+                raise ValueError(_t("err.cat_doc_keep", name=name))
             if name == self.cfg.screenshot_category:
-                raise ValueError(f"「{name}」用來放手機截圖，不能刪除，可以改名")
+                raise ValueError(_t("err.cat_shot_keep", name=name))
             if len(self.cfg.categories) <= 2:
-                raise ValueError("至少要留兩個類別")
+                raise ValueError(_t("err.cat_min"))
             un = self.cfg.unsorted_category
             moved, failed = 0, []
             for r in self._cat_rows(name):
@@ -954,33 +955,39 @@ class Processor:
             if p.exists() and inside(p, self.cfg.data):
                 out.append((r, p))
         if not out:
-            raise ValueError("沒有可以匯出的檔案")
+            raise ValueError(_t("err.nothing_export"))
         return out
 
     def _sub_of(self, r, by):
         if by == "category":
-            return PLAIN_NAME if r["mode"] == "plain" else (DUP_FOLDER if r["duplicate_of"] else r["category"] or "其他")
+            if r["mode"] == "plain":
+                return _t("lib.plain")
+            if r["duplicate_of"]:
+                return _t("lib.dup")
+            if r["category"] == OTHER_CAT:
+                return _t("lib.other")
+            return r["category"] or _t("lib.other_short")
         if by == "month":
-            return r["taken"] or "沒有日期"
+            return r["taken"] or _t("lib.no_date")
         if by == "place":
-            return " ".join(x for x in (r["place1"], r["place2"]) if x) or "沒有地點"
+            return " ".join(x for x in (r["place1"], r["place2"]) if x) or _t("lib.no_place")
         return ""
 
     def export_copy(self, ids, dest: str, by=""):
         """複製到使用者選的資料夾（在裡面新建「尋棲匯出 日期時間」），不覆蓋任何檔案。"""
         dest = (dest or "").strip().strip('"')
         if not dest:
-            raise ValueError("請選擇要匯出到哪個資料夾")
+            raise ValueError(_t("err.export_pick"))
         base = Path(os.path.expandvars(os.path.expanduser(dest)))
         if not base.is_absolute():
-            raise ValueError("請輸入完整路徑，例如 D:\\照片")
+            raise ValueError(_t("err.export_relative"))
         base = base.resolve()
         if inside(base, self.cfg.data):
-            raise ValueError("不能匯出到檔案資料夾裡面，請選其他位置")
+            raise ValueError(_t("err.export_in_data"))
         if inside(base, ROOT):
-            raise ValueError("不能匯出到程式資料夾裡面，請選其他位置")
+            raise ValueError(_t("err.export_in_app"))
         items = self._export_rows(ids)
-        out = unique_path(base, f"尋棲匯出 {datetime.datetime.now():%Y-%m-%d %H%M}")
+        out = unique_path(base, _t("lib.export_folder", time=f"{datetime.datetime.now():%Y-%m-%d %H%M}"))
         out.mkdir(parents=True)
         n = 0
         for r, p in items:
@@ -992,7 +999,7 @@ class Processor:
     def export_zip(self, ids, by=""):
         """打包成 ZIP（不壓縮，照片影片本來就壓縮過，比較快），回傳下載代號。"""
         items = self._export_rows(ids)
-        tmp = self.cfg.state_dir / EXPORT_TEMP
+        tmp = self.cfg.export_temp
         tmp.mkdir(exist_ok=True)
         token = uuid.uuid4().hex
         used = set()
@@ -1012,12 +1019,12 @@ class Processor:
     def export_file(self, token):
         if not token or not all(c in "0123456789abcdef" for c in token):
             return None
-        p = self.cfg.state_dir / EXPORT_TEMP / f"{token}.zip"
+        p = self.cfg.export_temp / f"{token}.zip"
         return p if p.exists() else None
 
     def clean_export_temp(self):
         """清掉上次沒下載完的匯出暫存（程式自己產生的 zip）。"""
-        tmp = self.cfg.state_dir / EXPORT_TEMP
+        tmp = self.cfg.export_temp
         if tmp.exists():
             for f in tmp.glob("*.zip"):
                 try:

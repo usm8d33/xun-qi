@@ -2,3 +2,8 @@
 ・標準版／旗艦版：models\embeddinggemma-2\model.safetensors（google/embeddinggemma-2 整個資料夾）
 ・輕量版：models\embeddinggemma-2-onnx\onnx\model_quantized.onnx 等（onnx-community/embeddinggemma-2-ONNX）
 ・OCR：models\ocr\ 的 det、rec 兩個 .onnx
+
+Put the models here (download_model.bat downloads them for you):
+- Standard / Flagship: models\embeddinggemma-2\model.safetensors (the whole google/embeddinggemma-2 folder)
+- Lite: models\embeddinggemma-2-onnx\onnx\model_quantized.onnx and related files (onnx-community/embeddinggemma-2-ONNX)
+- OCR: the det and rec .onnx files in models\ocr\

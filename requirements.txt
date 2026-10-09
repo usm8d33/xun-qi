@@ -1,0 +1,11 @@
+# 三種版本都要的套件
+numpy
+pyyaml
+cryptography
+pillow
+pillow-heif
+opencv-python-headless
+pypdf
+python-docx
+huggingface_hub
+tokenizers

@@ -158,5 +158,5 @@ def gps_of(path: Path, kind: str):
         if kind == "video":
             return video_gps(path)
     except Exception as e:  # noqa
-        log.debug("讀不到 GPS %s：%s", path.name, e)
+        log.debug("cannot read GPS %s: %s", path.name, e)
     return None

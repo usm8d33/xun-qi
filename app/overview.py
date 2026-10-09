@@ -7,6 +7,8 @@ import os
 import shutil
 from pathlib import Path
 
+from .lang import t as _t
+
 
 
 def home(app):
@@ -112,7 +114,7 @@ def _copy_missing(app, it):
     st, proc = app.store, app.proc
     r = st.get(it["file_id"]) if it["file_id"] else None
     if r is not None and it["sha256"] and r["sha256"] and it["sha256"] != r["sha256"]:
-        return "索引的內容和收到的不一致"
+        return _t("chk.index_mismatch")
     if r is not None and not r["removed"]:
         return None                       # 本身還在（檔案存在、大小、打得開由後面的逐檔檢查負責）
     if r is not None and r["removed"] and not r["duplicate_of"] and st.abspath(r["path"]).is_file():
@@ -121,8 +123,8 @@ def _copy_missing(app, it):
     if sha and proc._verified_original(sha, it["got_size"] or (r["size"] if r is not None else None)) is not None:
         return None                       # 重複檔被清掉了，但內容相同的保留副本確實還在
     if r is None:
-        return "電腦上已經找不到這個項目"
-    return "移到待刪除了，但保留的原檔不在"
+        return _t("chk.gone")
+    return _t("chk.kept_missing")
 
 
 def batch_check(app, bid: str):
@@ -140,15 +142,15 @@ def batch_check(app, bid: str):
         p = st.abspath(r["path"])
         why = None
         if not p.exists():
-            why = "找不到檔案"
+            why = _t("chk.not_found")
         elif r["size"] and p.stat().st_size != r["size"]:
-            why = "檔案大小不對"
+            why = _t("chk.size")
         else:
             try:
                 if not _opens(p, r["kind"]):
-                    why = "打不開"
+                    why = _t("chk.cant_open")
             except Exception:  # noqa
-                why = "打不開"
+                why = _t("chk.cant_open")
         if why:
             bad.append({"id": r["id"], "name": r["name"], "why": why})
             continue
@@ -160,7 +162,8 @@ def batch_check(app, bid: str):
     busy, dups, items = 0, [], []
     if bid != st.LEGACY:
         items = st.batch_items(bid)
-        WHY = {"expected": "沒有收到", "received": "還在處理", "failed": "傳輸失敗", "error": "處理失敗"}
+        WHY = {"expected": _t("chk.not_received"), "received": _t("chk.processing"), "failed": _t("chk.transfer_failed"),
+               "error": _t("chk.process_failed")}
         for it in items:
             if it["status"] == "indexed":
                 # indexed 不代表永遠安全：要確認現在電腦上仍有這個項目的有效副本
@@ -170,9 +173,9 @@ def batch_check(app, bid: str):
                 continue
             if it["status"] == "received":
                 busy += 1
-            why = WHY.get(it["status"], "狀態不明")
+            why = WHY.get(it["status"], _t("chk.unknown"))
             if it["status"] in ("failed", "error") and it["error"]:
-                why += f"（{it['error']}）"
+                why += _t("chk.paren", text=it["error"])
             bad.append({"id": it["file_id"], "name": it["name"] or it["fid"], "why": why})
         with st.lock:
             cnt = st.conn.execute("SELECT count FROM batches WHERE id=?", (bid,)).fetchone()
@@ -185,14 +188,14 @@ def batch_check(app, bid: str):
         if items:
             dups = [it for it in items if it["status"] == "indexed"]   # 有逐檔紀錄時，以它為準
         if not items and cnt and cnt[0] and have < cnt[0]:      # 舊版批次沒有逐檔紀錄：至少核對數量
-            bad.append({"id": None, "name": f"{cnt[0] - have} 個項目", "why": "沒有收到"})
+            bad.append({"id": None, "name": _t("chk.n_items", n=cnt[0] - have), "why": _t("chk.not_received")})
         for d in ([] if items else dups):
             op = st.abspath(d["opath"]) if d["opath"] else None
             if op is None or d["orem"] or not op.is_file() or (d["osize"] and op.stat().st_size != d["osize"]):
-                bad.append({"id": d["id"], "name": d["name"], "why": "移到待刪除了，但保留的原檔不在"})
+                bad.append({"id": d["id"], "name": d["name"], "why": _t("chk.kept_missing")})
         if app.proc.batch_pending.get(bid) and not busy:
             busy = app.proc.batch_pending[bid]
-            bad.append({"id": None, "name": f"{busy} 個項目", "why": "還在處理"})
+            bad.append({"id": None, "name": _t("chk.n_items", n=busy), "why": _t("chk.processing")})
     fmt = lambda t: t.strftime("%Y-%m-%dT%H:%M")  # noqa
     return {
         "busy": busy,

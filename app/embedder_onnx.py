@@ -10,6 +10,8 @@ import time
 
 import numpy as np
 
+from .lang import t as _t
+
 log = logging.getLogger("embedder")
 
 PATCH, POOL, SOFT = 16, 3, 280          # 和官方 processor_config 相同
@@ -67,8 +69,8 @@ class OnnxEmbedder:
     @property
     def state(self):
         if self.fake:
-            return "測試模式"
-        return f"已載入（ONNX {self.device}）" if self.text_s is not None else "未載入（需要時自動載入）"
+            return _t("model.test")
+        return _t("model.loaded", dev="ONNX " + str(self.device)) if self.text_s is not None else _t("model.not_loaded")
 
     def _session(self, path, cpu=False):
         import onnxruntime as ort
@@ -91,11 +93,11 @@ class OnnxEmbedder:
             from tokenizers import Tokenizer
             m = d / "onnx" / "model_quantized.onnx"
             if not m.exists():
-                raise FileNotFoundError(f"找不到輕量版模型，請先執行 download_model.bat（應在 {m}）")
+                raise FileNotFoundError(_t("model.missing_lite", path=m))
             t = time.time()
             self.tok = Tokenizer.from_file(str(d / "tokenizer.json"))
             self.text_s = self._session(m)
-            log.info("輕量版模型（文字）載入完成：%s，%.1f 秒", self.device, time.time() - t)
+            log.info(_t("log.lite_loaded", dev=self.device, sec=f"{time.time() - t:.1f}"))
         if need_vision and self.vis_s is None:
             self.vis_s = self._session(d / "onnx" / "vision_encoder_quantized.onnx")
 
@@ -106,7 +108,7 @@ class OnnxEmbedder:
         except Exception as e:  # noqa
             if self.device != "DirectML":
                 raise
-            log.warning("顯示卡（DirectML）執行失敗，改用 CPU：%s", e)
+            log.warning(_t("log.dml_fallback", err=e))
             self.cfg["force_cpu"] = True
             self.text_s = self.vis_s = None
             return fn()
@@ -117,7 +119,7 @@ class OnnxEmbedder:
                 return
             self.text_s = self.vis_s = None
             gc.collect()
-            log.info("模型已卸載，釋放記憶體")
+            log.info(_t("log.model_unloaded"))
 
     def _idle_watch(self):
         while True:

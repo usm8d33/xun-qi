@@ -1,10 +1,20 @@
 @echo off
 chcp 65001 >nul
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-title Xun-Qi 尋棲（關閉此視窗即結束）
+call app\lang.cmd
+if /i "%XQL%"=="en" goto msg_en
+set "M_TITLE=Xun-Qi 尋棲（關閉此視窗即結束）"
+set "M_SETUP=第一次使用請先執行 setup.bat"
+goto msg_done
+:msg_en
+set "M_TITLE=Xun-Qi (close this window to quit)"
+set "M_SETUP=First time? Run setup.bat first."
+:msg_done
+title !M_TITLE!
 set "PY=%~dp0runtime\python\python.exe"
 if not exist "%PY%" (
-  echo 第一次使用請先執行 setup.bat
+  echo !M_SETUP!
   pause & exit /b 1
 )
 set PYTHONIOENCODING=utf-8

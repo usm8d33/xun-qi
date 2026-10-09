@@ -20,9 +20,9 @@ This program is not an official LocalSend product. The interface is available in
 |---|---|
 | ![Search](docs/screenshots/en/search.png) | ![Review](docs/screenshots/en/review.png) |
 
-| Send to phone | Choosing a device in LocalSend (Chinese interface) |
+| Send to phone | Choosing a device in LocalSend |
 |---|---|
-| ![Send to phone](docs/screenshots/en/send.png) | <img src="docs/screenshots/phone.png" width="240" alt="Two devices shown on the phone"> |
+| ![Send to phone](docs/screenshots/en/send.png) | <img src="docs/screenshots/en/phone.png" width="240" alt="Two devices shown on the phone"> |
 
 Sample photos in the screenshots are from Pixabay (Pixabay Content License).
 

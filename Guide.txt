@@ -1,0 +1,218 @@
+Xun-Qi User Guide
+=================
+(A receiver and organizer compatible with the LocalSend protocol. Xun-Qi is not an official LocalSend product.)
+中文說明請看「使用說明.txt」。
+
+[What it is]
+Send files from your phone (iPhone or Android) to your PC with the official LocalSend app. Your phone sees two devices:
+  - My PC - Send: files are saved straight into "files folder\Sent"
+  - My PC - Send & Sort: after saving, EmbeddingGemma 2 sorts them into "files folder\Sorted\category\year-month"
+    and adds them to the search index
+
+[Language]
+- The interface is available in English and Traditional Chinese (繁體中文). On first start, Xun-Qi follows your
+  Windows display language (Chinese -> Traditional Chinese, anything else -> English; if you're upgrading from an
+  earlier version, it stays in Traditional Chinese). You can switch at any time in the
+  web page under Tools > Language; the page changes right away. The text in the black console window and the device
+  names your phone sees (My PC - Send / 我的電腦-傳送) update the next time you start the app. setup.bat,
+  download_model.bat and start.bat follow the same setting.
+- Switching languages never renames or moves folders, and existing category names stay the same; only the interface
+  text changes. Folder names inside the files folder are decided when it's first created: created in English, you get
+  "Desktop\Xun-Qi" with "Sent, Sorted, To delete..." and English categories (Food, Scenery...); created in Chinese, you
+  get "Xun-Qi 尋棲" with Chinese names. They stay that way afterward.
+- The setting is saved in user_settings.json in the app folder ("lang": "en" or "zh").
+
+[Two folders]
+- App folder (this folder): only the program, portable Python and the AI models. You can delete and reinstall it
+  without touching your files.
+- Files folder: "Desktop\Xun-Qi" by default, created on first start.
+  (If "Desktop\Xun-Qi 尋棲" or the older "Desktop\LocalSend 收到的檔案" already exists, it's used as is; nothing is moved.)
+  Inside:
+    Sent\                     files received with "Send"
+    Sorted\category\year-month\   results of "Send & Sort"
+    Duplicates\  Other files\
+    To delete\                files you chose not to keep in Duplicates (Xun-Qi never deletes them; you do)
+    Index backups\            backups made in Tools > Backup & Restore
+    .xunqi-data\              (hidden) search index, device certificates and logs. Please don't delete it.
+  To change the location: Tools > Files Location in the sidebar. Click "Choose..." or paste a path, save, then restart.
+  Changing the location doesn't move any files. To keep your existing files: quit the app, move the whole folder in
+  File Explorer, then choose it in Tools > Files Location. Categories, index and review status all carry over.
+  If your Desktop is synced by OneDrive, received photos will be uploaded to the cloud. Xun-Qi warns you about this;
+  choose another location if you don't want that.
+
+[First-time setup (once)]
+1. Put the whole app folder where you like (for example D:\XunQi). Keep the path short.
+2. Double-click setup.bat. It downloads portable Python and the packages it needs, and asks you to choose an edition
+   (with a suggestion based on your graphics card).
+   All three editions have the same features; they differ in accuracy, speed and size:
+     - 1 Lite: no PyTorch. The AI uses an ONNX int8 model (about 0.5 GB) and DirectML on any graphics card
+               (NVIDIA, AMD or Intel), or the CPU. Text recognition uses the mobile model; videos get a frame every
+               6 seconds. Smallest, slightly less accurate sorting.
+     - 2 Standard: PyTorch + the original EmbeddingGemma 2 model (about 1.5 GB). Mobile text recognition model; a video
+               frame every 4 seconds.
+     - 3 Flagship: the same AI as Standard, with the server text recognition model (most accurate) and a video frame
+               every 2 seconds. For PCs with a dedicated graphics card.
+   Standard and Flagship detect your graphics card and pick a PyTorch build:
+     - NVIDIA RTX 50 series -> CUDA 13.0 build (about 1.9 GB; needs driver 580 or later, otherwise the CUDA 12.8 build)
+     - NVIDIA GTX 16, RTX 20/30/40 series -> CUDA 12.6 build (about 2.6 GB)
+     - NVIDIA GTX 10 series or older -> CUDA 12.6 build, pinned to PyTorch 2.14
+     - Intel Arc graphics / Core Ultra integrated graphics -> Intel build (about 0.6 GB)
+     - AMD graphics or no dedicated graphics card -> CPU build (about 0.1 GB; Lite is recommended for these PCs)
+   You can also choose in Command Prompt: setup.bat lite (or standard, flagship). For Standard and Flagship you can add
+   a build, for example setup.bat standard cu126. To switch editions or after changing graphics cards, run setup.bat
+   again; received files and the index are not affected.
+3. Double-click download_model.bat to download the models for your edition:
+   - Lite: the int8 model from onnx-community/embeddinggemma-2-ONNX (about 0.5 GB) -> models\embeddinggemma-2-onnx
+   - Standard / Flagship: google/embeddinggemma-2 (about 1.5 GB) -> models\embeddinggemma-2 (if you downloaded it
+     yourself, put it here; it must include model.safetensors)
+4. The OCR models (for reading text in photos) are also downloaded by download_model.bat into models\ocr\:
+   Flagship uses server (about 170 MB); Lite and Standard use mobile (about 21 MB). If both are there, the one for your
+   edition is preferred. Without them everything else still works; you just can't search text in photos.
+
+[Every time]
+1. Quit the LocalSend desktop app completely first (including its icon in the taskbar corner); otherwise it takes the
+   same port.
+2. Double-click start.bat. The black window shows an address (http://127.0.0.1:8765). Copy it into your browser to
+   open the app.
+3. The first time, Windows Firewall asks for permission. Check "Private networks" and allow it.
+4. On your phone, open LocalSend -> Send -> pick files -> tap "My PC - Send" or "My PC - Send & Sort".
+   The phone and the PC must be on the same Wi-Fi.
+5. When you're done, just close the black window. Xun-Qi doesn't start automatically with Windows.
+
+[Web interface]
+- Home: search box; counts for To Review, Suggested Review, Duplicates and To Delete (click to go there); the latest
+  batch; AI and text recognition status; storage used; and a cover photo for each category.
+- Sidebar: Library, Categories and Tools can each be expanded or collapsed by clicking the heading, and the page
+  remembers your choice. The sidebar scrolls on its own. Click a category to see only that category; click again to
+  clear it.
+- Each transfer from your phone is a batch. At the top of each batch, "Suggested Review" lists items the AI isn't sure
+  about (low confidence, two close categories, Unsorted, or a possible duplicate), each with the reason. If it's wrong,
+  use "Change Category"; if it's right, click "Category Is Correct" and it moves down to "Others".
+  (These buttons appear when you hover over a thumbnail.)
+- Click a photo to see it large. Use the arrow keys to browse and Esc to close. On the right you can change the
+  category or show the file in File Explorer.
+- When you're done with a batch, click "Mark as Reviewed" to move it to Reviewed (it's only hidden; nothing is moved
+  or deleted). "Move Back to To Review" brings it back.
+- Safe to delete from your phone: after "Mark as Reviewed", Xun-Qi checks that every file in the batch is there, the
+  right size and opens correctly. If everything passes, it says "Safely saved to this PC. You can delete these from
+  your iPhone." with the number of photos and videos and the date range, so you can find them in Photos and delete
+  them yourself. If something fails, it says "Don't delete from your phone yet" and lists the problem files. Click OK
+  to dismiss (reloading the page dismisses it too). Xun-Qi never deletes files on your phone or PC.
+- Search filters: below the search box you can choose a category, a type (photos / videos / documents) and a range of
+  months taken. Choose filters without typing to list matching items (newest first).
+- Search by image: open a photo and click "Find Similar" to list the most similar items (filters apply). No AI model
+  needs to load, so it's fast. You can also drag any image from your PC into the search box (or click
+  "Search by Image"); the image is only compared in memory and never saved.
+- Duplicates: possible duplicates are shown side by side in groups (the original plus items that are identical or very
+  similar), with resolution, file size and month taken. The best one to keep is checked for you: usually the highest
+  resolution, or in a burst, a similar-resolution shot that's clearly sharper (each shows "Sharpness xx%"). Check the
+  ones to keep and click "Apply": unchecked items move to the To Delete folder, and the kept ones go back to their
+  category. "Not Duplicates, Keep All" moves the whole group back to their categories. In a batch, "Compare" jumps
+  straight to that group.
+- Move N Identical: appears on a batch when items are exactly the same as files you received before. You're asked
+  to confirm first.
+- To Delete: lists files moved to the To Delete folder. "Move Back" returns an item to where it was. If you're sure,
+  click "Open To Delete Folder" and delete them yourself; the list updates automatically. Xun-Qi itself never deletes
+  any file.
+- Timeline: items grouped by year and month taken, with buttons to jump to a year. Each month shows how many items and
+  the most common places; "Show All ... This Month" lists everything from that month. The filters above apply too.
+- Places: reads GPS from photos and videos and looks up place names offline (nothing goes online). Taiwan shows
+  "county/city + district"; other countries show "country + city". Note: place names currently come from the built-in
+  data, so Taiwan places and country names are shown in Chinese. Click a place to list items taken there; the filter
+  bar also has a place filter. Locations for older files are read in the background when the app starts.
+  Why some items have no location: screenshots, downloaded images, or Location was turned off under Options when
+  sharing from an iPhone. The folder structure doesn't change (still category\year-month).
+- Export (top right): click it, then click the items to export. You can select across batches, search results and the
+  timeline; "Select Page" selects everything on screen.
+  "Copy to Folder..." copies to a location you choose (inside a new "Xun-Qi Export date time" folder); "Save as ZIP"
+  downloads a ZIP in your browser. You can organize into folders: None, By Category, By Month or By Place. Both copy;
+  your originals stay where they are and nothing is overwritten.
+- Send to Phone: sends files to your phone with LocalSend (same Wi-Fi, with LocalSend open on screen).
+  Open it from Export (top right) -> "Send to Phone" at the bottom. You get two choices:
+  - From Library: send items you received back to your phone. Select items first, then choose this.
+    Before sending, files are checked against the SHA-256 recorded when they were received; missing or changed files
+    are skipped with the reason.
+    Shortcuts: "Send to Phone" at the top right of each batch sends the whole batch; it's also next to a large photo.
+  - From This PC: any file on your PC, using "Choose Files...", "Choose Folder..." (including subfolders) or by dragging
+    files into the window. Chosen files are read where they are, not copied; dragged files are kept only until they're
+    sent. These files are only sent, not added to the library.
+  - Choose a phone and click "Send", then tap "Accept" on the phone. To save straight to Photos, turn on "Save to
+    gallery" in LocalSend's settings on the phone. If your phone doesn't show up, click "Search Again", then
+    "Scan Network". Turn off the PIN in LocalSend on the phone if it's on.
+  - Files are only read, never moved or deleted. While sending you can close the window and let it continue in the
+    background, or click "Cancel".
+- Manage Categories (Tools): add, rename or delete categories, and edit each category's descriptions (one per line).
+  Put an emoji in the icon box, or leave it empty for the built-in icon.
+  Renaming moves that category's files in Sorted to a folder with the new name. Deleting a category moves its items
+  to Unsorted; no files are deleted. "Documents & Receipts" and "Screenshots" have special rules: they can be renamed
+  but not deleted. When you close the window you can re-sort To Review items with the new categories.
+  Once you change categories in the app, the app's settings are used (saved in .xunqi-data\categories.json, so they
+  survive reinstalling), and the categories in config.yaml are no longer used.
+- Backup & Restore (Tools): backs up categories, review status, your corrections, custom categories, the search
+  index and the phone pairing certificates, but not the photos themselves.
+  Backups are saved in "files folder\Index backups"; keeping an extra copy on a USB drive or in the cloud is a good
+  idea. To restore, pick a backup from the list or use "Restore from File..." to choose a backup ZIP. The current
+  state is backed up automatically first, and the backup is applied when you restart the app.
+- Text search (OCR): text in photos, screenshots and scanned PDFs is read. Type text like "booking code" or "1,280" in
+  the search box: items with an exact text match come first, with the matching line highlighted on the thumbnail,
+  followed by AI search results. Traditional and Simplified Chinese match each other, and full-width characters,
+  spaces and commas don't matter ("1280" finds "1,280"). Text inside PDF, Word and TXT files is searchable the same
+  way. Open a photo and use "Text" on the right to see all its text and copy it.
+  An NVIDIA graphics card is used if available; otherwise the CPU (slower). When a photo has a lot of text, sorting
+  leans slightly toward "Documents & Receipts".
+- Video moments: videos are indexed with one frame every few seconds (up to 150 frames per video). Search compares
+  every frame, the video thumbnail shows "0:42" with the best-matching frame, and opening it plays from that moment.
+  If the browser can't play the format (some iPhone HEVC videos), a still from that moment is shown, and you can click
+  "Open in Video Player".
+- Background tasks: older photos and videos get text recognition and video indexing in the background. The top bar
+  shows "Background: Text: N left · Videos: N left", with a Pause button. New files to sort always go first.
+- The moon/sun button at the top right switches dark mode.
+- Search with a sentence in the search box, like "sunset at the beach", "sleeping cat" or "last month's quote".
+
+[Screenshots]
+Images without camera information whose file name looks like a screenshot (Screenshot...) or whose size matches an
+iPhone, iPad or Android screen go straight into "Screenshots". Photos taken with a camera are never put there.
+
+[Safety]
+- Xun-Qi only moves files it received itself, and only inside the files folder. It never reads, changes or deletes any
+  other file on your PC.
+- Files with the same name are renamed (photo (1).jpg) and never overwritten.
+- Duplicates and similar photos only go to "Duplicates"; they move to the To Delete folder only when you click
+  "Apply". Xun-Qi never deletes any file.
+- The web interface can only be opened on this PC; others on your network can't reach it.
+
+[Categories]
+Food, Drinks & Desserts, Scenery, Cityscape, People, Group & Party, Pets & Animals, Plants & Flowers, Vehicles,
+Documents & Receipts, Shopping, Screenshots, plus Unsorted, Possible Duplicates and Other Files.
+(A files folder created in Chinese uses the Chinese category names.)
+Change categories and descriptions in Tools > Manage Categories; other settings such as thresholds are in config.yaml
+(open it with Notepad).
+
+[Getting better over time]
+- Items you re-categorize in the app move to the right folder and become examples, so similar photos are sorted
+  correctly from then on.
+- After changing categories, click Tools > Re-sort to re-sort To Review photos with the new rules (the AI doesn't run
+  again, so it's fast; items you changed or already reviewed stay as they are).
+- Tools > Index "Send" Items: makes photos received with "Send" searchable too (index only; nothing is moved or sorted).
+
+[FAQ]
+- Your phone doesn't see the PC: check that both are on the same Wi-Fi, the firewall allowed Xun-Qi, and the LocalSend
+  desktop app is closed; pull down to refresh in LocalSend on the phone.
+  If you still see only one device, set mode_select to web in config.yaml and switch modes in the web page instead.
+- After changing the files folder location or the language, your phone may briefly show the old device name; it
+  disappears after refreshing.
+- Too many items go to Unsorted: lower min_confidence in config.yaml (for example 0.25).
+- Too many or too few Suggested Review items: adjust doubt_confidence in config.yaml (lower = fewer).
+- Graphics memory: the model unloads after 10 idle minutes, or use Tools > Free AI Memory.
+- The files folder is on an external drive that isn't connected: Xun-Qi shows an error. Connect the drive and start
+  again, or delete user_settings.json in the app folder to go back to the Desktop.
+- The log is in "files folder\.xunqi-data\log.txt" (".整理器資料\log.txt" for a folder created in Chinese).
+- OCR shows "No model": put the det and rec .onnx files in models\ocr\ and restart. "onnxruntime is missing": run
+  setup.bat again.
+- The top bar shows "Text recognition failed several times in a row and was paused": the model files are probably
+  incomplete. Download them again, then click "Resume".
+
+[Data and model sources]
+Place names use data from GeoNames (geonames.org), licensed CC BY 4.0.
+OCR uses PaddleOCR's PP-OCRv5 models (ONNX versions by RapidOCR), licensed Apache 2.0.
+The Traditional/Simplified Chinese table comes from OpenCC, licensed Apache 2.0.

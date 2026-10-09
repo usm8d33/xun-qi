@@ -14,7 +14,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlparse
 
-from . import backup, categories, config, extract, overview
+from . import backup, categories, config, extract, lang, overview
+from .lang import t as _t
 from .processor import FILTER_KEYS
 from .safefs import inside
 
@@ -50,12 +51,12 @@ def open_with_default_app(path):
     os.startfile(str(path))
 
 
-def pick_folder(title="選擇手機檔案要存放的資料夾", kind="folder"):
+def pick_folder(title=None, kind="folder"):
     """跳出 Windows 的「選擇資料夾」（或 kind="files"：選檔案，可多選）視窗。
     回傳使用者選的路徑（多個時以換行分隔；取消回傳空字串）。"""
     if sys.platform != "win32":
         return ""
-    env = dict(os.environ, LSS_PICK_TITLE=title, XQ_PICK_KIND=kind)
+    env = dict(os.environ, LSS_PICK_TITLE=title or _t("pick.data"), XQ_PICK_KIND=kind)
     r = subprocess.run(["powershell", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-File", str(PICK_PS)], capture_output=True, env=env,
                        timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return r.stdout.decode("utf-8", "replace").strip()
@@ -71,6 +72,28 @@ def media_info(p: Path):
     except Exception:
         pass
     return None
+
+
+_PAGE = {}
+_T_TAG = re.compile(r"\{\{t:([a-z0-9_.]+)\}\}")     # 文字（會跳脫 HTML）
+_H_TAG = re.compile(r"\{\{h:([a-z0-9_.]+)\}\}")     # 語言檔裡允許的簡單 HTML（只有 <b>）
+
+
+def page(token: str) -> str:
+    """首頁：把 {{t:key}} 換成目前語言的文字，注入這次啟動的憑證和網頁用的文字表。"""
+    code = lang.current()
+    if code not in _PAGE:
+        with open(STATIC / "index.html", encoding="utf-8") as f:
+            html = f.read()
+        import html as _h
+        html = _T_TAG.sub(lambda m: _h.escape(_t(m.group(1), code)), html)
+        html = _H_TAG.sub(lambda m: _t(m.group(1), code), html)     # 語言檔裡寫好的粗體（<b>）
+        words = {k: v for k, v in lang.table(code).items() if not k.startswith(("con.", "log.", "gpu."))}
+        boot = ("<script>window.XQL=" + json.dumps({"lang": code, "t": words, "options": lang.options()},
+                                                    ensure_ascii=False).replace("</", "<\\/") + ";</script>")
+        html = html.replace('<html lang="zh-Hant">', f'<html lang="{_t("web.html_lang", code)}">', 1)
+        _PAGE[code] = html.replace("</head>", boot + "</head>", 1)
+    return _PAGE[code].replace("</head>", f'<meta name="xq-token" content="{token}"></head>', 1)
 
 
 INLINE_EXT = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif",            # 不含腳本、瀏覽器可直接顯示
@@ -190,7 +213,7 @@ def start(app):
                     return self._json({"ok": True})
                 if path == "/api/send/pick":
                     kind = "files" if q.get("kind") == "files" else "folder"
-                    raw = pick_folder("選擇要傳到手機的檔案" if kind == "files" else "選擇要傳到手機的資料夾", kind)
+                    raw = pick_folder(_t("pick.send_files") if kind == "files" else _t("pick.send_folder"), kind)
                     paths = [x.strip() for x in raw.splitlines() if x.strip()]
                     r = app.stage.add_paths(paths) if paths else {"added": 0, "skipped": 0}
                     return self._json({"ok": True, **r, "items": app.stage.list()})
@@ -200,13 +223,13 @@ def start(app):
                 if path == "/api/send/start":
                     if d.get("source") == "stage":
                         items = app.sender.items_from_stage(d.get("ids") or None)
-                        label = "電腦上的檔案"
+                        label = _t("send.label_pc")
                     elif d.get("batch"):
                         items = app.sender.items_from_library(app.store.batch_ids(str(d["batch"])))
-                        label = "整批傳回"
+                        label = _t("send.label_batch")
                     else:
                         items = app.sender.items_from_library(d.get("ids") or [])
-                        label = "傳回手機"
+                        label = _t("send.label_back")
                     return self._json({"ok": True, **app.sender.start(str(d.get("peer") or ""), items, label)})
                 if path == "/api/send/cancel":
                     return self._json({"ok": app.sender.cancel()})
@@ -223,9 +246,9 @@ def start(app):
             u = urlparse(self.path)
             q = {k: v[0] for k, v in parse_qs(u.query).items()}
             if u.path == "/":
-                html = (STATIC / "index.html").read_text(encoding="utf-8")
-                html = html.replace("</head>", f'<meta name="xq-token" content="{token}"></head>', 1)
-                return self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+                return self._send(200, page(token).encode("utf-8"), "text/html; charset=utf-8")
+            if u.path == "/api/lang":
+                return self._json({"lang": lang.current(), "options": lang.options()})
             if u.path == "/api/send/state":
                 from .sender import PEERS
                 return self._json({"peers": PEERS.list(), "scanning": app.scanning, "job": app.sender.status(),
@@ -270,10 +293,10 @@ def start(app):
             if u.path == "/api/export_dl":
                 p = app.proc.export_file(q.get("token", ""))
                 if not p:
-                    return self._send(404, "下載已過期，請重新匯出".encode())
+                    return self._send(404, _t("err.download_expired").encode())
                 try:
                     size = p.stat().st_size
-                    fname = f"尋棲匯出 {time.strftime('%Y-%m-%d %H%M')}.zip"
+                    fname = _t("lib.export_folder", time=time.strftime('%Y-%m-%d %H%M')) + ".zip"
                     self.send_response(200)
                     self.send_header("Content-Type", "application/zip")
                     self.send_header("Content-Length", str(size))
@@ -358,7 +381,7 @@ def start(app):
             if u.path == "/api/send/drop":     # 拖進網頁的檔案可能很大：直接串流寫到暫存，不先讀進記憶體
                 try:
                     if n <= 0:
-                        raise ValueError("檔案是空的")
+                        raise ValueError(_t("err.empty_file"))
                     iid = app.stage.add_drop(q.get("name", ""), self.rfile, n)
                     return self._json({"ok": True, "id": iid, "items": app.stage.list()})
                 except Exception as e:  # noqa
@@ -369,13 +392,19 @@ def start(app):
                 return self._send_api(u.path, q, body)
             if u.path == "/api/similar_upload":
                 if not 0 < n <= 60 * 1024 * 1024:
-                    return self._json({"error": "圖片太大或是空的"}, 400)
+                    return self._json({"error": _t("err.image_size")}, 400)
                 data = body
                 filt = {k: q.get(k, "") for k in FILTER_KEYS}
                 try:
                     return self._json(app.proc.similar_image(data, **filt))
                 except Exception as e:  # noqa
-                    return self._json({"error": "讀不了這張圖片：" + str(e)}, 400)
+                    return self._json({"error": _t("err.image_read", err=e)}, 400)
+            if u.path == "/api/lang":
+                try:
+                    code = lang.set_lang(json.loads(body or b"{}").get("lang", ""))
+                    return self._json({"ok": True, "lang": code})
+                except Exception as e:  # noqa
+                    return self._json({"ok": False, "error": str(e)}, 400)
             if u.path == "/api/mode" and q.get("mode") in ("plain", "sort"):
                 app.web_mode = q["mode"]
                 return self._json({"ok": True, "mode": app.web_mode})
@@ -388,14 +417,14 @@ def start(app):
             if u.path in ("/api/confirm_batch", "/api/unconfirm_batch"):
                 bid = q.get("batch", "")
                 if not bid:
-                    return self._json({"ok": False, "error": "缺少批次"}, 400)
+                    return self._json({"ok": False, "error": _t("err.no_batch")}, 400)
                 n = app.proc.confirm_batch(bid, 1 if u.path == "/api/confirm_batch" else 0)
                 return self._json({"ok": True, "changed": n})
             if u.path == "/api/check":
                 try:
                     fid = int(q.get("id", "0"))
                 except ValueError:
-                    return self._json({"ok": False, "error": "參數錯誤"}, 400)
+                    return self._json({"ok": False, "error": _t("err.bad_param")}, 400)
                 return self._json({"ok": bool(app.proc.check(fid, 0 if q.get("v") == "0" else 1))})
             if u.path == "/api/dup_apply":
                 try:
@@ -420,7 +449,7 @@ def start(app):
                 return self._json({"ok": True})
             if u.path == "/api/pick_folder":
                 try:
-                    title = "選擇要匯出到哪個資料夾" if q.get("for") == "export" else "選擇手機檔案要存放的資料夾"
+                    title = _t("pick.export") if q.get("for") == "export" else _t("pick.data")
                     return self._json({"ok": True, "path": pick_folder(title)})
                 except Exception as e:  # noqa
                     return self._json({"ok": False, "error": str(e)})
@@ -501,7 +530,7 @@ def start(app):
             if u.path == "/api/open_file":
                 p = self._row_path(q)
                 if p and extract.kind_of(p) not in ("image", "video", "document"):
-                    return self._json({"ok": False, "error": "這種檔案不從這裡開啟，請用「在資料夾中顯示」"})
+                    return self._json({"ok": False, "error": _t("err.open_kind")})
                 if p and sys.platform == "win32":
                     open_with_default_app(p)      # 用電腦預設的播放器／檢視器開啟
                 return self._json({"ok": bool(p)})

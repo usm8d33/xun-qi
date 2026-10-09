@@ -3,6 +3,12 @@ import re
 import shutil
 from pathlib import Path
 
+from .lang import t as _t
+
+
+class OutsideError(PermissionError):
+    """要在檔案資料夾以外搬移檔案：一律拒絕。"""
+
 _BAD = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 
@@ -43,7 +49,7 @@ def inside(path: Path, root: Path) -> bool:
 def move_within(src: Path, dst_folder: Path, root: Path) -> Path:
     """只允許在 root（檔案資料夾）裡面搬移本程式自己收到的檔案。"""
     if not (inside(src, root) and inside(dst_folder, root)):
-        raise PermissionError(f"拒絕在檔案資料夾以外搬移檔案：{src}")
+        raise OutsideError(_t("err.outside", path=src))
     dst = unique_path(dst_folder, src.name)
     shutil.move(str(src), str(dst))
     return dst
@@ -53,7 +59,7 @@ def move_exact(src: Path, dst: Path, root: Path) -> None:
     """搬到指定的檔名；目的地已存在就丟 FileExistsError（絕不覆蓋）。只在檔案資料夾內搬。"""
     import os
     if not (inside(src, root) and inside(dst.parent, root)):
-        raise PermissionError(f"拒絕在檔案資料夾以外搬移檔案：{src}")
+        raise OutsideError(_t("err.outside", path=src))
     dst.parent.mkdir(parents=True, exist_ok=True)
     if os.name == "nt":
         os.rename(src, dst)                # Windows：目的地存在會失敗，不會覆蓋
@@ -76,7 +82,7 @@ def claim_name(tmp: Path, folder: Path, name: str) -> Path:
             return final
         except FileExistsError:
             continue
-    raise FileExistsError(f"找不到可用的檔名：{name}")
+    raise FileExistsError(_t("err.no_free_name", name=name))
 
 
 TMP_PREFIX = ".~xq-"   # 接收中的暫存檔（程式自己的，不是使用者的檔案）

@@ -1,9 +1,16 @@
 # ===== Xun-Qi 尋棲 設定檔 =====
 # 程式資料夾只放程式和 AI 模型；手機傳來的檔案放在另一個「檔案資料夾」（預設在桌面）。
+# 介面語言（繁體中文／English）在網頁「工具 › 語言」切換，不在這裡設定。
+#
+# ===== Xun-Qi settings =====
+# Most settings can be changed in the app. The interface language is under Tools › Language.
+# Lines starting with # are notes. Category names below are used only for folders created in Chinese;
+# a files folder created in English starts with English categories (Food, Scenery, ...).
 
-# 手機上看到的兩台裝置名稱
-alias_plain: "我的電腦-傳送"
-alias_sort: "我的電腦-傳送並分類"
+# 手機上看到的兩台裝置名稱。空白 = 依介面語言：我的電腦-傳送／我的電腦-傳送並分類（English: My PC - Send／My PC - Send & Sort）
+# Device names shown on your phone. Leave empty to follow the interface language.
+alias_plain: ""
+alias_sort: ""
 port_plain: 53317        # LocalSend 預設埠
 port_sort: 53318
 
@@ -17,7 +24,9 @@ user_name: ""
 
 
 # 檔案資料夾：手機傳來的檔案、搜尋索引都放這裡，和程式分開，重裝程式也不影響。
-# 空白 = 桌面\Xun-Qi 尋棲（改名前的「桌面\LocalSend 收到的檔案」如果還在，會直接沿用）。也可以在網頁左側「工具 › 存放位置」更改（網頁設定優先）。
+# 空白 = 桌面\Xun-Qi 尋棲（英文介面第一次建立時是 桌面\Xun-Qi；改名前的「桌面\LocalSend 收到的檔案」如果還在，會直接沿用）。
+# 也可以在網頁左側「工具 › 存放位置」更改（網頁設定優先）。
+# Empty = Desktop\Xun-Qi (or an existing Desktop\Xun-Qi 尋棲). You can change it in Tools › Files Location.
 # 例：files_dir: "D:\照片\Xun-Qi 尋棲"
 files_dir: ""
 
@@ -76,6 +85,7 @@ categories:
     - "手機截圖、聊天畫面、網頁、App 畫面"
 
 # 這幾個類別有特殊規則，改名時要一起改
+# （英文介面新建的檔案資料夾用 Screenshots、Documents & Receipts、Unsorted，記在檔案資料夾裡，不看這三行）
 screenshot_category: 截圖      # iPhone／Android 截圖（沒有相機資訊，且檔名像截圖或尺寸剛好是手機螢幕）直接歸這類；相機拍的照片絕不會被分到這類
 document_category: 文件收據    # PDF、Word、TXT 直接歸這類
 unsorted_category: 未分類

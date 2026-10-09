@@ -65,7 +65,8 @@ class Classifier:
             for name, descs in self.cfg.categories.items():
                 if isinstance(descs, str):
                     descs = [descs]
-                v = self.emb.text([f"{name}：{d}" if not d.startswith(name) else d for d in descs], "query")
+                sep = ": " if name.isascii() else "："     # 英文類別名稱用英文冒號
+                v = self.emb.text([f"{name}{sep}{d}" if not d.startswith(name) else d for d in descs], "query")
                 m = v.mean(axis=0)
                 names.append(name)
                 vecs.append(m / (np.linalg.norm(m) + 1e-9))

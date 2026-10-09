@@ -1,0 +1,4 @@
+# 標準版、旗艦版（torch、torchvision 由 setup.bat 另外從 CUDA 版本來源安裝）
+sentence-transformers>=5.1
+transformers>=5.18
+accelerate

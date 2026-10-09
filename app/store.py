@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .lang import reason as lang_reason, t as _t
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS files(
   id INTEGER PRIMARY KEY,
@@ -111,7 +113,7 @@ class Store:
                                       (err, bid, fid))
                 else:
                     self.conn.execute("UPDATE batch_items SET status='error', error=? WHERE batch=? AND fid=?",
-                                      ("舊版紀錄找不到檔案位置，請檢查這個檔案是否已收到", bid, fid))
+                                      (_t("err.legacy_no_path"), bid, fid))
             self.conn.execute(
                 "UPDATE batch_items SET "
                 "path=COALESCE(path, (SELECT f.path FROM files f WHERE f.id=batch_items.file_id)), "
@@ -189,17 +191,17 @@ class Store:
         unsorted = cfg.get("unsorted_category", "未分類")
         if f.get("duplicate_of"):
             other = (names or {}).get(f["duplicate_of"])
-            return f"和「{other}」重複或很像" if other else "疑似重複"
+            return _t("doubt.dup_of", name=other) if other else _t("doubt.dup")
         if f.get("category") == unsorted:
-            return f.get("reason") or "AI 無法判斷"
+            return lang_reason(f.get("reason")) or _t("reason.ai_unsure")
         sc = f.get("score")
         if sc is None or f.get("reason") in ("截圖尺寸", "截圖檔名", "文件檔"):
             return None
         sec, ss = f.get("second"), f.get("second_score")
         if sec and ss is not None and sc > 0 and ss >= cfg.get("doubt_close_ratio", 0.6) * sc:
-            return f"可能是「{f['category']}」或「{sec}」"
+            return _t("doubt.either", a=f["category"], b=sec)
         if sc < cfg.get("doubt_confidence", 0.5):
-            return f"信心只有 {round(sc * 100)}%"
+            return _t("doubt.low", pct=round(sc * 100))
         return None
 
     def set_checked(self, fid, value=1):
@@ -313,7 +315,7 @@ class Store:
             d = r["duplicate_of"]
             r["exact"] = bool(d and d in tgt and tgt[d][1] and tgt[d][1] == r["sha256"])
             if r["doubt"] and d and d in names:
-                r["doubt"] = f"和「{names[d]}」{'完全相同' if r['exact'] else '很像'}"
+                r["doubt"] = _t("doubt.exact" if r["exact"] else "doubt.similar", name=names[d])
             r.pop("sha256", None)
         groups = {}
         for r in rows:
@@ -335,7 +337,7 @@ class Store:
                     continue
             b = info.get(bid, {})
             out.append({"id": bid, "started_at": b.get("started_at") or min(f["received_at"] or 0 for f in files),
-                        "sender": b.get("sender") or ("舊版收到的檔案" if bid == self.LEGACY else ""),
+                        "sender": b.get("sender") or (_t("batch.legacy") if bid == self.LEGACY else ""),
                         "mode": b.get("mode") or files[0]["mode"], "expected": b.get("count"),
                         "total": len(groups[bid]), "reviewed": n_rev,
                         "doubts": sum(1 for f in files if f["doubt"]),

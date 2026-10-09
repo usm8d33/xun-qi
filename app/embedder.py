@@ -8,6 +8,8 @@ import time
 
 import numpy as np
 
+from .lang import t as _t
+
 log = logging.getLogger("embedder")
 
 
@@ -25,8 +27,8 @@ class Embedder:
     @property
     def state(self):
         if self.fake:
-            return "測試模式"
-        return f"已載入（{self.device}）" if self.model is not None else "未載入（需要時自動載入）"
+            return _t("model.test")
+        return _t("model.loaded", dev=self.device) if self.model is not None else _t("model.not_loaded")
 
     def _load(self):
         if self.model is not None or self.fake:
@@ -36,7 +38,7 @@ class Embedder:
 
         path = self.cfg.model_dir
         if not (path / "model.safetensors").exists():
-            raise FileNotFoundError(f"找不到模型檔，請先執行 download_model.bat（應在 {path}）")
+            raise FileNotFoundError(_t("model.missing", path=path))
         xpu = getattr(torch, "xpu", None)
         if torch.cuda.is_available() and not self.cfg.force_cpu and _works(torch, "cuda"):
             self.device = "cuda"
@@ -50,7 +52,7 @@ class Embedder:
             dtype = torch.float32
             torch.set_num_threads(max(1, (os.cpu_count() or 4) // 2))  # 只用一半 CPU，不拖慢電腦
         t = time.time()
-        log.info("載入 EmbeddingGemma 2（文字＋圖片）到 %s …", self.device)
+        log.info(_t("log.model_loading", dev=self.device))
         self.model = SentenceTransformer(
             str(path),
             device=self.device,
@@ -58,7 +60,7 @@ class Embedder:
             config_kwargs={"audio_config": None},
             local_files_only=True,
         )
-        log.info("模型載入完成，花了 %.1f 秒", time.time() - t)
+        log.info(_t("log.model_loaded", sec=f"{time.time() - t:.1f}"))
 
     def unload(self):
         with self.lock:
@@ -74,7 +76,7 @@ class Embedder:
                     torch.xpu.empty_cache()
             except Exception:
                 pass
-            log.info("模型已卸載，釋放記憶體")
+            log.info(_t("log.model_unloaded"))
 
     def _idle_watch(self):
         while True:
@@ -107,7 +109,7 @@ class Embedder:
             try:
                 return self._enc(list(pil_images))
             except Exception as e1:  # 不同版本 sentence-transformers 的多模態輸入格式不同，換一種再試
-                log.debug("直接傳圖片失敗（%s），改用 dict 格式", e1)
+                log.debug("image input failed (%s), retrying with dict format", e1)
                 return self._enc([{"image": im} for im in pil_images])
 
 
@@ -116,7 +118,7 @@ def _works(torch, device):
     try:
         return float((torch.ones(4, device=device) * 2).sum()) == 8.0
     except Exception as e:  # noqa
-        log.warning("顯示卡（%s）無法使用，改用 CPU：%s", device, e)
+        log.warning(_t("log.gpu_fallback", dev=device, err=e))
         return False
 
 

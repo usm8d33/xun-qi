@@ -1,0 +1,18 @@
+# 執行環境與 AI 模型（由 setup.bat、download_model.bat 下載，不放進 repo）
+runtime/
+models/*
+!models/把模型放這裡.txt
+
+# 使用者資料與設定（照片、索引、憑證都在檔案資料夾，不在程式資料夾）
+data/
+user_settings.json
+Xun-Qi 尋棲/
+LocalSend 收到的檔案/
+.整理器資料/
+
+# Python
+__pycache__/
+*.pyc
+
+# 打包檔
+*.zip

@@ -7,8 +7,10 @@ models/*
 data/
 user_settings.json
 Xun-Qi 尋棲/
+Xun-Qi/
 LocalSend 收到的檔案/
 .整理器資料/
+.xunqi-data/
 
 # Python
 __pycache__/

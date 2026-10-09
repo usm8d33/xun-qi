@@ -8,7 +8,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import backup, config, localsend, sender, tls, webui  # noqa: E402
+from app import backup, config, lang, localsend, sender, tls, webui  # noqa: E402
+from app.lang import t as _t  # noqa: E402
 from app.processor import Processor, sha256_of  # noqa: E402
 from app.store import Store  # noqa: E402
 
@@ -82,33 +83,35 @@ class App:
             "restore_pending": backup.pending(self.cfg),
             "restored": bool(self.cfg.get("restored")),
             "user_name": str(self.cfg.get("user_name") or os.environ.get("USERNAME") or os.environ.get("USER") or ""),
+            "lang": lang.current(),
+            "unsorted": self.cfg.unsorted_category,
         }
 
     def run(self):
         cfg = self.cfg
         if cfg.mode_select == "web":
             c, k, fp = tls.ensure_cert(cfg.state_dir, "device_main")
-            self.devices = [localsend.Device(cfg.alias_plain.split("-")[0], cfg.port_plain, c, k, fp,
+            self.devices = [localsend.Device(cfg.alias[0].split("-")[0].strip(), cfg.port_plain, c, k, fp,
                                              self.inbox_for, lambda: self.web_mode)]
         else:
             c1, k1, f1 = tls.ensure_cert(cfg.state_dir, "device_plain")
             c2, k2, f2 = tls.ensure_cert(cfg.state_dir, "device_sort")
             self.devices = [
-                localsend.Device(cfg.alias_plain, cfg.port_plain, c1, k1, f1, self.inbox_for, lambda: "plain"),
-                localsend.Device(cfg.alias_sort, cfg.port_sort, c2, k2, f2, self.inbox_for, lambda: "sort"),
+                localsend.Device(cfg.alias[0], cfg.port_plain, c1, k1, f1, self.inbox_for, lambda: "plain"),
+                localsend.Device(cfg.alias[1], cfg.port_sort, c2, k2, f2, self.inbox_for, lambda: "sort"),
             ]
         try:
             _, self.disc = localsend.start(self.devices, self.proc.on_file, self.proc.event)
         except OSError as e:
-            print("\n[錯誤] 無法開啟 LocalSend 接收埠：", e)
-            print("  多半是電腦版 LocalSend 還開著（佔用 53317 埠）。請把它完全關閉（包含右下角圖示）後再重開本程式。\n")
-            input("按 Enter 結束…")
+            print("\n" + _t("con.err_port"), e)
+            print("  " + _t("con.err_port_hint") + "\n")
+            input(_t("con.press_enter"))
             return
         try:
             webui.start(self)
         except OSError:
-            print(f"\n[錯誤] 網頁埠 {cfg.web_port} 被佔用，請在 config.yaml 改 web_port。")
-            input("按 Enter 結束…")
+            print("\n" + _t("con.err_web_port", port=cfg.web_port))
+            input(_t("con.press_enter"))
             return
         self.proc.requeue_leftovers()
         self.proc.removed_list()  # 你已自己刪掉的「待刪除」檔案，從索引移除
@@ -120,20 +123,21 @@ class App:
         url = f"http://127.0.0.1:{cfg.web_port}"
         lan = ", ".join(localsend.local_ipv4s())
         print("=" * 60)
-        print(f"  Xun-Qi 尋棲（{cfg.edition_name}）已啟動")
-        print("  請把下面這個網址複製到瀏覽器開啟操作介面：")
+        print("  " + _t("con.started", edition=cfg.edition_name))
+        print("  " + _t("con.open_url"))
         print(f"\n      {url}\n")
-        print(f"  手機 LocalSend 會看到：{'、'.join(d.alias for d in self.devices)}")
-        print(f"  電腦區網 IP：{lan}")
-        print(f"  檔案存放位置：{cfg.data}")
+        print("  " + _t("con.phone_sees", names=_t("con.list_sep").join(d.alias for d in self.devices)))
+        print("  " + _t("con.lan_ip", ip=lan))
+        print("  " + _t("con.data_dir", path=cfg.data))
+        print("  " + _t("con.language", name=lang.LANGS[lang.current()]))
         if cfg.synced_by_onedrive:
-            print("  ［提醒］這個位置在 OneDrive 裡，收到的照片會被同步上傳到雲端。")
-            print("          不想上傳的話，可在網頁左下「⚙ 存放位置」換到其他資料夾。")
+            print("  " + _t("con.onedrive1"))
+            print("  " + _t("con.onedrive2"))
         ocr_state = self.proc.ocr.state
-        print(f"  OCR（照片文字）：{ocr_state}" + ("　→ 把 det／rec 兩個 .onnx 放到 models\\ocr\\" if ocr_state == "沒有模型" else ""))
+        print("  " + _t("con.ocr", state=ocr_state) + (_t("con.ocr_hint") if ocr_state == _t("ocr.no_model") else ""))
         if cfg.get("restored"):
-            print("  ［還原］已換上你選的索引備份。")
-        print("  關閉這個視窗即結束程式。")
+            print("  " + _t("con.restored"))
+        print("  " + _t("con.close_hint"))
         print("=" * 60)
         try:
             while True:
@@ -146,7 +150,7 @@ if __name__ == "__main__":
     try:
         a = App()
     except RuntimeError as e:
-        print("\n[錯誤]", e)
-        input("按 Enter 結束…")
+        print("\n" + _t("con.err"), e)
+        input(_t("con.press_enter"))
         sys.exit(1)
     a.run()

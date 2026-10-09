@@ -1,0 +1,122 @@
+# ===== Xun-Qi 尋棲 設定檔 =====
+# 程式資料夾只放程式和 AI 模型；手機傳來的檔案放在另一個「檔案資料夾」（預設在桌面）。
+
+# 手機上看到的兩台裝置名稱
+alias_plain: "我的電腦-傳送"
+alias_sort: "我的電腦-傳送並分類"
+port_plain: 53317        # LocalSend 預設埠
+port_sort: 53318
+
+# 模式怎麼選：phone = 手機上選兩台裝置（建議）；web = 只顯示一台，在網頁上切換
+mode_select: phone
+
+# 網頁介面（只限本機開啟）
+web_port: 8765
+# 首頁問候用的名字；空白 = 用 Windows 的使用者名稱
+user_name: ""
+
+
+# 檔案資料夾：手機傳來的檔案、搜尋索引都放這裡，和程式分開，重裝程式也不影響。
+# 空白 = 桌面\Xun-Qi 尋棲（改名前的「桌面\LocalSend 收到的檔案」如果還在，會直接沿用）。也可以在網頁左側「工具 › 存放位置」更改（網頁設定優先）。
+# 例：files_dir: "D:\照片\Xun-Qi 尋棲"
+files_dir: ""
+
+# 分類類別：每類可寫好幾句描述（中英文都可以），AI 會綜合判斷，寫得越具體越準。
+# 建議直接在網頁左側「工具 › 管理類別」新增、改名、刪除。注意：網頁上改過之後，類別以網頁的設定為準，
+# 這裡的 categories 就不再使用（想改回用這裡的設定，刪除 檔案資料夾\.整理器資料\categories.json）。
+categories:
+  美食:
+    - "a photo of a meal or dish of food"
+    - "restaurant food, noodles, rice, meat, sushi, street food"
+    - "一盤食物、餐點、料理"
+  飲品甜點:
+    - "a photo of a drink, coffee, bubble tea or juice"
+    - "a photo of a dessert, cake, ice cream or pastry"
+    - "飲料、咖啡、手搖飲、甜點、蛋糕"
+  自然風景:
+    - "a landscape photo of nature: mountains, sea, beach, lake or sky"
+    - "scenic outdoor view, sunset, waterfall, forest path, hiking trail"
+    - "大自然風景、山、海、湖、森林、夕陽"
+  城市街景:
+    - "a photo of a city street, buildings, skyline or night market"
+    - "urban scene, shops, road, architecture, night city lights"
+    - "城市街道、建築、夜景、商店街、夜市"
+  人物:
+    - "a photo of a person as the main subject: a man, woman or child"
+    - "a portrait or selfie of someone's face"
+    - "a person standing or walking, people photo"
+    - "人物照、自拍、人像"
+  合照聚會:
+    - "a group photo of several people together"
+    - "friends or family gathering, party, wedding, team photo"
+    - "多人合照、聚會、婚禮、家庭聚餐"
+  寵物動物:
+    - "a photo of a pet, a cat or a dog"
+    - "a photo of an animal or bird"
+    - "寵物、貓、狗、動物"
+  植物花卉:
+    - "a photo of flowers or blossoms"
+    - "a photo of plants, trees, leaves or a garden"
+    - "花、植物、盆栽"
+  交通工具:
+    - "a photo of a vehicle: car, scooter, motorcycle, bicycle"
+    - "a photo of a train, bus, airplane, station or airport"
+    - "汽車、機車、火車、飛機、交通工具"
+  文件收據:
+    - "a photo of a paper document, receipt, invoice or form"
+    - "handwritten notes, a notebook page, a whiteboard, printed text"
+    - "文件、收據、發票、筆記、白板"
+  商品購物:
+    - "a product photo: shoes, clothes, bag, gadget"
+    - "items in a store or supermarket shelf, shopping"
+    - "商品、購物、衣服、鞋子、3C 產品"
+  截圖:
+    - "a screenshot of a phone or computer screen"
+    - "app user interface, chat messages, social media, web page, map app"
+    - "手機截圖、聊天畫面、網頁、App 畫面"
+
+# 這幾個類別有特殊規則，改名時要一起改
+screenshot_category: 截圖      # iPhone／Android 截圖（沒有相機資訊，且檔名像截圖或尺寸剛好是手機螢幕）直接歸這類；相機拍的照片絕不會被分到這類
+document_category: 文件收據    # PDF、Word、TXT 直接歸這類
+unsorted_category: 未分類
+
+# AI 信心（0~1）低於這個值 → 未分類。調低：未分類變少但可能分錯；調高：更保守
+min_confidence: 0.35
+temperature: 50
+
+# 「⚠ 建議先確認」：每批分類完，下面這些會排在最上面提醒你先看
+#   信心低於 doubt_confidence、第二名信心達到第一名的 doubt_close_ratio 倍（兩類很接近）、未分類、疑似重複
+doubt_confidence: 0.5
+doubt_close_ratio: 0.6
+
+# 你在網頁上「改分類」過的照片會變成範例；新照片和範例相似度超過這個值就直接用範例的分類
+learn_similarity: 0.82
+
+# 相似照門檻（0~1，越高越嚴格）；完全相同的檔案一定會被抓
+near_duplicate: 0.97
+
+# 依日期建立子資料夾（例如 2026-10）
+date_subfolder: true
+
+# 向量維度：768 / 512 / 256 / 128（256 幾乎無損又省空間）
+embed_dim: 256
+
+# 影片片段：每幾秒抓一格畫面（搜尋可以直接找到影片裡的那一秒）；每部最多幾格，太長的影片平均分配
+video_seg_every: 0      # 0 = 依版本：輕量版 6 秒、標準版 4 秒、旗艦版 2 秒
+video_seg_max: 150
+
+# OCR（讀照片裡的文字，可以用文字搜尋截圖、收據、招牌）
+# 模型放在 程式資料夾\models\ocr\（PP-OCRv5 的 det 和 rec 兩個 .onnx）；沒有模型時自動關閉
+ocr_enabled: true
+# 照片裡讀到這麼多字以上，分類時稍微偏向「文件收據」；ocr_doc_boost 設 0 就不偏向
+ocr_doc_chars: 30
+ocr_doc_boost: 0.02
+
+# 模型閒置幾分鐘後自動卸載，釋放顯示卡記憶體
+model_idle_unload_min: 10
+
+# 版本：空白 = 用 setup.bat 選的（lite 輕量版／standard 標準版／flagship 旗艦版）。想換版本請重跑 setup.bat
+edition: ""
+
+# 強制用 CPU（true/false）
+force_cpu: false

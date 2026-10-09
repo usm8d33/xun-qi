@@ -16,15 +16,21 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-BACKUP_DIR = "索引備份"
-PENDING = "還原待套用"
+from . import lang
+
+BACKUP_DIR = "索引備份"          # 繁體中文檔案資料夾的名稱；實際名稱看 cfg.names["backups"]
+PENDING = "還原待套用"           # 同上，cfg.names["restore_pending"]
 STATE_FILES = ("categories.json", "device_plain.crt", "device_plain.key", "device_sort.crt", "device_sort.key",
                "device_main.crt", "device_main.key")
 MAGIC = "LocalSendSorter-index-backup"
 
 
 def backup_dir(cfg) -> Path:
-    return cfg.data / BACKUP_DIR
+    return cfg.data / cfg.names["backups"]
+
+
+def _pending_dir(cfg) -> Path:
+    return cfg.state_dir / cfg.names["restore_pending"]
 
 
 def make(cfg, store, note="") -> Path:
@@ -32,10 +38,11 @@ def make(cfg, store, note="") -> Path:
     out_dir = backup_dir(cfg)
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    dst = out_dir / f"尋棲索引_{stamp}{('_' + note) if note else ''}.zip"
+    pre = lang.t("lib.backup_prefix")
+    dst = out_dir / f"{pre}{stamp}{('_' + note) if note else ''}.zip"
     i = 1
     while dst.exists():
-        dst = out_dir / f"尋棲索引_{stamp}_{i}.zip"
+        dst = out_dir / f"{pre}{stamp}_{i}.zip"
         i += 1
     with tempfile.TemporaryDirectory(dir=cfg.state_dir) as td:
         snap = Path(td) / "index.db"
@@ -84,19 +91,19 @@ def _validate(data: bytes):
         info = json.loads(z.read("info.json"))
         db = z.read("index.db")
     except Exception:
-        raise ValueError("這不是尋棲的索引備份檔")
+        raise ValueError(lang.t("err.bk_not_backup"))
     if info.get("type") != MAGIC:
-        raise ValueError("這不是尋棲的索引備份檔")
+        raise ValueError(lang.t("err.bk_not_backup"))
     if not db.startswith(b"SQLite format 3"):
-        raise ValueError("備份檔裡的索引壞掉了")
+        raise ValueError(lang.t("err.bk_broken"))
     return z
 
 
 def stage(cfg, store, data: bytes) -> Path:
     """驗證備份、先自動備份目前的索引，再排定下次啟動時還原。回傳自動備份的位置。"""
     z = _validate(data)
-    auto = make(cfg, store, "還原前自動備份")
-    pend = cfg.state_dir / PENDING
+    auto = make(cfg, store, lang.t("lib.backup_auto"))
+    pend = _pending_dir(cfg)
     if pend.exists():
         shutil.rmtree(pend)   # 只是上一次排定、還沒套用的還原暫存（程式自己的檔案）
     pend.mkdir()
@@ -112,23 +119,25 @@ def stage(cfg, store, data: bytes) -> Path:
 def stage_named(cfg, store, name: str) -> Path:
     p = backup_dir(cfg) / Path(name).name
     if not p.exists():
-        raise ValueError("找不到這個備份檔")
-    return stage(cfg, store, p.read_bytes())
+        raise ValueError(lang.t("err.bk_missing"))
+    with open(p, "rb") as f:
+        data = f.read()
+    return stage(cfg, store, data)
 
 
 def cancel(cfg):
-    pend = cfg.state_dir / PENDING
+    pend = _pending_dir(cfg)
     if pend.exists():
         shutil.rmtree(pend)
 
 
 def pending(cfg) -> bool:
-    return (cfg.state_dir / PENDING / "ready").exists()
+    return (_pending_dir(cfg) / "ready").exists()
 
 
-def apply_pending(state_dir: Path):
+def apply_pending(state_dir: Path, pending_name: str = PENDING):
     """啟動時、開資料庫之前呼叫：把排定的還原換上。只動 .整理器資料 裡程式自己的檔案。"""
-    pend = state_dir / PENDING
+    pend = state_dir / pending_name
     if not (pend / "ready").exists():
         return False
     if (pend / "use_config_categories").exists() and (state_dir / "categories.json").exists():

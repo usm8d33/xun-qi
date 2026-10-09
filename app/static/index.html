@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xun-Qi 尋棲</title>
+<style>
+/* 設計語言參考 Apple 的人機介面風格；字型只用電腦內建的系統字（不附任何字型檔），圖示是 Lucide（ISC 授權） */
+:root{
+  --bg:#f5f5f7;--side:rgba(236,236,240,.82);--card:#fff;--ink:#1d1d1f;--mute:#86868b;--sep:rgba(60,60,67,.14);
+  --fill:rgba(118,118,128,.12);--fill2:rgba(118,118,128,.2);--blue:#0071e3;--blue2:rgba(0,113,227,.1);
+  --green:#1f9d47;--green2:rgba(40,167,69,.13);--orange:#f08c00;--orange2:rgba(255,149,0,.14);--red:#ff3b30;
+  --sh:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.06);--hover:rgba(0,0,0,.05);--on:rgba(0,0,0,.075);
+}
+[data-theme=dark]{
+  --bg:#000;--side:rgba(28,28,30,.86);--card:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--sep:rgba(84,84,88,.55);
+  --fill:rgba(118,118,128,.24);--fill2:rgba(118,118,128,.34);--blue:#0a84ff;--blue2:rgba(10,132,255,.18);
+  --green:#30d158;--green2:rgba(48,209,88,.16);--orange:#ff9f0a;--orange2:rgba(255,159,10,.18);--red:#ff453a;
+  --sh:none;--hover:rgba(255,255,255,.06);--on:rgba(255,255,255,.1);color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang TC","Segoe UI Variable Text","Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  -webkit-font-smoothing:antialiased;letter-spacing:.01em}
+button,select,input,textarea{font:inherit;color:inherit}
+.i{width:17px;height:17px;flex:none;vertical-align:-3px}
+button{cursor:pointer;border:0;border-radius:980px;padding:7px 15px;background:var(--fill);font-size:13.5px;display:inline-flex;align-items:center;gap:6px;transition:background .15s,opacity .15s;white-space:nowrap}
+button:hover{background:var(--fill2)}
+button.primary{background:var(--blue);color:#fff;font-weight:500}
+button.primary:hover{opacity:.88;background:var(--blue)}
+button.ghost{background:transparent}
+button.ghost:hover{background:var(--hover)}
+button.link{background:none;color:var(--blue);padding:4px 2px}
+button:disabled{opacity:.5;cursor:default}
+select,input[type=month]{background:var(--card);border:1px solid var(--sep);border-radius:8px;padding:5px 9px;font-size:13px}
+a{color:var(--blue)}
+
+/* 版面：左側欄自己捲動（overscroll-behavior: contain 讓滾輪不會帶動中間） */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;overscroll-behavior:contain;background:var(--side);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-right:1px solid var(--sep);padding:18px 10px 22px}
+.side::-webkit-scrollbar{width:8px}.side::-webkit-scrollbar-thumb{background:var(--fill2);border-radius:8px}
+.brand{display:flex;align-items:center;gap:9px;padding:2px 10px 16px;font-weight:600;font-size:14px}
+.brand b{width:26px;height:26px;border-radius:7px;background:linear-gradient(160deg,#34c3ff,#0071e3);display:grid;place-items:center;color:#fff}
+.brand b .i{width:15px;height:15px;stroke-width:2.2}
+.it{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--ink);text-decoration:none;user-select:none}
+.it:hover{background:var(--hover)}
+.it.on{background:var(--on);font-weight:600}
+.it .i{color:var(--blue)}
+.it .em{width:17px;text-align:center;font-size:14px;flex:none}
+.it .n{margin-left:auto;color:var(--mute);font-size:12.5px;font-weight:400;font-variant-numeric:tabular-nums}
+.sec .sh{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--mute);padding:16px 10px 5px;cursor:pointer;user-select:none;border-radius:6px}
+.sec .sh:hover{color:var(--ink)}
+.sec .sh .i{width:13px;height:13px;stroke-width:2.4;transition:transform .2s}
+.sec.closed .sh .i{transform:rotate(-90deg)}
+.sec.closed .sb{display:none}
+.side .foot{font-size:11.5px;color:var(--mute);padding:16px 10px 0;line-height:1.5;word-break:break-all}
+
+.main{padding:0 44px 90px;max-width:1280px;width:100%}
+.tbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:14px 0 12px;
+  background:linear-gradient(var(--bg) 78%,transparent);font-size:12.5px;color:var(--mute)}
+.tbar .sp{flex:1}
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.st .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.st .dot.idle{background:var(--mute)}
+.st button{padding:1px 9px;font-size:12px}
+.prog{width:110px;height:5px;border-radius:9px;background:var(--fill2);overflow:hidden;display:inline-block}
+.prog b{display:block;height:100%;width:0;background:var(--blue);transition:width .4s}
+.tbar>button{padding:6px 13px;font-size:13px}
+.tbtn{background:var(--card);border:1px solid var(--sep);box-shadow:0 1px 2px rgba(0,0,0,.06);color:var(--ink);font-weight:500}
+.tbtn:hover{background:var(--card);border-color:var(--blue);color:var(--blue)}
+.tbtn .i{color:var(--blue)}
+.tbtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.tbtn.primary .i{color:#fff}
+.tbtn.icon{padding:6px 9px}
+[data-theme=dark] .tbtn:not(.primary){background:#2c2c2e;border-color:rgba(255,255,255,.14)}
+#modebox button{padding:5px 12px;font-size:12.5px}
+
+h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:4px 0 2px;line-height:1.2}
+.lead{color:var(--mute);font-size:15px;margin:0 0 18px;min-height:1.4em}
+.seg{display:inline-flex;background:var(--fill);border-radius:9px;padding:2px;margin:0 0 18px}
+.seg a{padding:5px 18px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--ink);user-select:none}
+.seg a.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+[data-theme=dark] .seg a.on{background:#636366}
+
+/* 搜尋 */
+.searchwrap{margin-bottom:26px}
+.search{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:12px;padding:0 6px 0 14px;height:46px;transition:box-shadow .15s,background .15s}
+.search:focus-within{box-shadow:0 0 0 3px var(--blue2);background:var(--card)}
+.search.drop{box-shadow:0 0 0 3px var(--blue);background:var(--blue2)}
+.search>.i{color:var(--mute);width:19px;height:19px}
+.search input{flex:1;border:0;outline:0;background:transparent;font-size:16px;min-width:0}
+.search input::placeholder{color:var(--mute)}
+.search .hintr{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;padding:6px 8px;border-radius:8px}
+.search .hintr:hover{background:var(--hover)}
+.search button.primary{padding:7px 16px}
+.sugs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.sugs span{background:var(--card);box-shadow:var(--sh);border-radius:980px;padding:4px 12px;color:var(--blue);cursor:pointer}
+[data-theme=dark] .sugs span{background:var(--fill)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--mute);margin-top:10px}
+
+/* 卡片 */
+.box{background:var(--card);border-radius:18px;box-shadow:var(--sh)}
+h2{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+h2 .link{margin-left:auto;font-size:14px;font-weight:400}
+.wid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:34px}
+.w{padding:16px 18px 18px;cursor:pointer;transition:transform .15s}
+.w:hover{transform:translateY(-2px)}
+.w .top{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+.w .num{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-top:10px;font-variant-numeric:tabular-nums;line-height:1.2}
+.w .num small{font-size:15px;font-weight:600;color:var(--mute);margin-left:3px}
+.w .sub{font-size:12.5px;color:var(--mute)}
+.w.dim .top{color:var(--mute)!important}
+.c-o{color:var(--orange)}.c-r{color:var(--red)}.c-b{color:var(--blue)}.c-g{color:var(--mute)}
+.two{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:18px;margin-bottom:34px}
+.pad{padding:18px}
+.meta{font-size:13px;color:var(--mute);margin:0 0 12px}
+.strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;border-radius:12px;overflow:hidden;cursor:pointer}
+.strip div{aspect-ratio:1;background:center/cover var(--fill)}
+.strip .more{display:grid;place-items:center;font-weight:600;color:var(--mute)}
+.grp{overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 16px;font-size:14px;position:relative}
+.row+.row::before{content:"";position:absolute;left:54px;right:0;top:0;border-top:1px solid var(--sep)}
+.row .ib{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:#fff;flex:none}
+.row .ib .i{width:15px;height:15px;stroke-width:2.2}
+.row .v{margin-left:auto;color:var(--mute);text-align:right;font-size:13.5px}
+.albums{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 16px}
+.al{cursor:pointer}
+.al .im{aspect-ratio:1;border-radius:10px;background:center/cover var(--fill);display:grid;place-items:center;color:var(--mute);transition:transform .15s}
+.al:hover .im{transform:scale(1.02)}
+.al .im .i{width:34px;height:34px;stroke-width:1.5}
+.al b{display:block;font-size:13px;font-weight:600;margin-top:7px}
+.al span{font-size:12.5px;color:var(--mute)}
+
+/* 批次 */
+.batch{margin-bottom:38px}
+.bh{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:12px}
+.bh .t{font-weight:700;font-size:19px;letter-spacing:-.01em}
+.bh .m{color:var(--mute);font-size:13.5px}
+.bh .m .prog{width:70px;margin:0 6px 0 8px;vertical-align:middle}
+.bh .sp{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:4px}
+.sub{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;margin:4px 0 10px;color:var(--mute)}
+.sub.warn{color:var(--orange)}
+.sub+.grid{margin-bottom:18px}
+.tile{position:relative;aspect-ratio:1;border-radius:5px;overflow:hidden;background:var(--fill);cursor:zoom-in}
+.tile .im{position:absolute;inset:0;background:center/cover no-repeat;display:grid;place-items:center;color:var(--mute);transition:transform .25s}
+.tile:hover .im{transform:scale(1.03)}
+.tile .im .i{width:42px;height:42px;stroke-width:1.4}
+.tile .im .fn{position:absolute;left:8px;right:8px;top:60%;text-align:center;font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .tag{position:absolute;left:6px;bottom:6px;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;color:#fff;background:rgba(0,0,0,.42);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:2px 8px;border-radius:980px;max-width:calc(100% - 12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .tag .pct{opacity:.75;font-weight:400}
+.tile .tag .i{width:12px;height:12px}
+.tile .why{position:absolute;left:6px;top:6px;right:6px;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(240,140,0,.92);padding:3px 8px;border-radius:8px;line-height:1.35}
+.tile .why .i{width:12px;height:12px;stroke-width:2.6}
+.tile .vid{position:absolute;right:6px;bottom:6px;display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);padding:2px 8px;border-radius:980px}
+.tile .vid .i{width:11px;height:11px;fill:#fff}
+.tile .vid.at{background:rgba(255,59,48,.88)}
+.tile .flag{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center}
+.tile .flag .i{width:13px;height:13px;stroke-width:3}
+.tile .hov{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.tile:hover .hov{opacity:1}
+.tile:hover .tag,.tile:hover .vid{opacity:0}
+.tile .hov select{flex:1;min-width:0;border:0;border-radius:8px;padding:5px 6px;font-size:12.5px;background:rgba(255,255,255,.94);color:#1d1d1f}
+.tile .hov button{padding:4px 10px;font-size:12px;border-radius:8px;background:rgba(255,255,255,.94);color:#1d1d1f}
+.tile .snip{position:absolute;left:6px;right:6px;bottom:32px;padding:5px 8px;border-radius:8px;font-size:12px;line-height:1.45;background:rgba(255,255,255,.95);color:#222;max-height:3.1em;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tile .snip mark,.lbtext mark{background:#ffe066;color:#222;border-radius:3px;padding:0 1px}
+.tile .ck{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.25);border:2px solid #fff;color:#fff;display:none;place-items:center}
+.tile .ck .i{width:13px;height:13px;stroke-width:3}
+body.selm .tile .ck{display:grid}
+body.selm .tile{cursor:pointer}
+body.selm .tile .hov,body.selm .tile .vid,body.selm .tile .flag{display:none}
+.tile.sel .ck{background:var(--blue);border-color:var(--blue)}
+.tile.sel .im{opacity:.82}
+.tile.sel{box-shadow:inset 0 0 0 3px var(--blue)}
+.tile .okb{position:absolute;right:6px;bottom:6px;padding:4px 10px;font-size:12px;border-radius:8px;background:rgba(255,255,255,.94);color:#1d1d1f;opacity:0;transition:opacity .15s}
+.tile:hover .okb{opacity:1}
+
+/* 可以從手機刪除了 */
+.note{display:flex;gap:14px;padding:18px 20px;margin-bottom:24px}
+.note .big{width:40px;height:40px;border-radius:50%;background:var(--green2);color:var(--green);display:grid;place-items:center;flex:none}
+.note.bad .big{background:var(--orange2);color:var(--orange)}
+.note .big .i{width:22px;height:22px}
+.note h4{margin:1px 0 4px;font-size:15.5px}
+.note p{margin:0;color:var(--mute);font-size:13.5px;line-height:1.6}
+.note .kv{display:flex;gap:8px 28px;flex-wrap:wrap;margin:12px 0 8px;font-size:13.5px}
+.note .kv div span{display:block;color:var(--mute);font-size:12px}
+.note .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.note ul{margin:8px 0 0;padding-left:20px;font-size:13.5px}
+.hl{animation:hl 1.6s ease}
+@keyframes hl{0%,40%{box-shadow:0 0 0 4px var(--blue2);border-radius:18px}100%{box-shadow:none}}
+
+.banner{border-radius:14px;padding:11px 16px;margin-bottom:14px;font-size:13.5px;display:none;align-items:center;gap:10px}
+.banner.warn{background:var(--orange2);color:var(--ink)}
+.banner.info{background:var(--blue2);color:var(--ink)}
+.banner .i{color:var(--orange)}
+.banner.info .i{color:var(--blue)}
+.hint{font-size:13.5px;color:var(--mute);margin:-4px 0 14px;line-height:1.6}
+.empty{padding:56px 20px;text-align:center;color:var(--mute);font-size:14.5px}
+.empty .i{display:block;margin:0 auto 10px;width:44px;height:44px;stroke-width:1.4;color:var(--mute)}
+.more{display:flex;margin:0 auto}
+.kbd{font-size:12.5px;color:var(--mute);line-height:1.55}
+
+/* 重複項目 */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.dc{border-radius:14px;overflow:hidden;background:var(--card);box-shadow:var(--sh);display:flex;flex-direction:column;transition:opacity .15s,box-shadow .15s}
+.dc.keep{box-shadow:0 0 0 2.5px var(--green),var(--sh)}
+.dc.drop{opacity:.5}
+.dc .im{aspect-ratio:4/3;background:center/contain no-repeat var(--fill);cursor:zoom-in;display:grid;place-items:center;color:var(--mute)}
+.dc .im .i{width:40px;height:40px}
+.dc .info{padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--mute)}
+.dc .info b{color:var(--ink);font-weight:600;word-break:break-all}
+.dc .tg{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;margin-right:4px;background:var(--blue2);color:var(--blue)}
+.dc .tg.best{background:var(--green2);color:var(--green)}
+.dc label{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--sep);font-size:13.5px;font-weight:600;cursor:pointer}
+.dc label input{width:18px;height:18px;accent-color:var(--green)}
+
+/* 時間軸、地點 */
+.years{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;position:sticky;top:52px;z-index:5;background:var(--bg);padding:6px 0}
+.years button{padding:4px 13px;font-size:13px}
+.mh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.mh .t{font-weight:700;font-size:19px}
+.mh .pl,.mh .c{color:var(--mute);font-size:13px}
+.plgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.plc{padding:16px 18px}
+.plc h4{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:7px;cursor:pointer}
+.plc h4 .i{color:var(--red)}
+.plc h4 .n,.chipb .n{color:var(--mute);font-weight:400;font-size:12.5px}
+.chipb{display:inline-flex;gap:5px;align-items:center;margin:0 6px 6px 0;padding:3px 11px;border-radius:99px;background:var(--fill);font-size:12.5px;cursor:pointer}
+.chipb:hover{background:var(--fill2)}
+
+/* 類別標籤（大圖旁、清單） */
+.cat{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.cat .i{width:13px;height:13px}
+
+/* 大圖 */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:50;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.lb.on{display:flex;padding-right:320px}
+.lb img{max-width:calc(100vw - 460px);max-height:88vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.lb video{max-width:calc(100vw - 460px);max-height:88vh;border-radius:8px;background:#000;display:none}
+.lb .side2{position:absolute;right:0;top:0;bottom:0;width:320px;background:var(--card);padding:22px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.lb .side2 h4{margin:0;font-size:15px;word-break:break-all}
+.lb .side2 select{padding:8px;border-radius:10px}
+.lb .side2 button{justify-content:center}
+.lb .nv{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;padding:0;justify-content:center}
+.lb .nv:hover{background:rgba(255,255,255,.24)}
+.lb .nv .i{width:22px;height:22px}
+.lb .nv.l{left:24px}.lb .nv.r{right:344px}
+.lb .x{position:absolute;top:16px;left:20px;z-index:2;background:rgba(255,255,255,.14);color:#fff}
+.lb .x:hover{background:rgba(255,255,255,.24)}
+.lb .vidfail{position:absolute;left:calc(50% - 160px);bottom:5vh;transform:translateX(-50%);display:none;gap:10px;align-items:center;background:rgba(30,30,30,.8);backdrop-filter:blur(10px);color:#fff;padding:10px 14px;border-radius:14px;font-size:13px}
+.lb .vidfail button{color:#1d1d1f;background:#fff;font-weight:600}
+.lbtext{flex:1 1 auto;min-height:60px;max-height:34vh;overflow:auto;white-space:pre-wrap;font-size:12.5px;line-height:1.6;background:var(--fill);border-radius:10px;padding:8px 10px;user-select:text}
+
+/* 對話框 */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal.on{display:flex}
+.modal .card{width:min(560px,92vw);padding:24px;display:flex;flex-direction:column;gap:12px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{margin:0;font-size:18px;font-weight:700}
+.modal input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--sep);background:var(--fill);outline:0}
+.modal input:focus{box-shadow:0 0 0 3px var(--blue2)}
+.modal .row2{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.modal .err{color:var(--red);font-size:13px;min-height:18px}
+.modal .card.wide{width:min(760px,94vw);max-height:88vh;overflow:auto}
+.cm{display:grid;grid-template-columns:52px 150px 1fr auto;gap:8px;align-items:start;padding:12px 0;border-bottom:1px solid var(--sep)}
+.cm input,.cm textarea{padding:7px 9px;border-radius:9px;border:1px solid var(--sep);background:var(--fill);width:100%;font:inherit;color:inherit}
+.cm textarea{min-height:78px;resize:vertical;font-size:12.5px}
+.cm .em{text-align:center;font-size:18px}
+.cm .bt{display:flex;flex-direction:column;gap:6px}
+.cm .bt button{padding:6px 12px;font-size:12.5px;justify-content:center}
+.cm .sp{grid-column:2/5;font-size:11.5px;color:var(--mute);margin-top:-4px}
+.bk{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sep);font-size:13px}
+.bk .nm{flex:1;word-break:break-all}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,32,.92);backdrop-filter:blur(12px);color:#fff;padding:10px 18px;border-radius:980px;opacity:0;transition:.25s;z-index:60;font-size:13.5px;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+/* 「傳到手機」選單：從檔案庫傳回／從電腦上傳 */
+.sendpop{position:fixed;z-index:45;width:340px;display:none;flex-direction:column;gap:2px;padding:6px;border-radius:14px;background:var(--card);border:1px solid var(--sep);box-shadow:0 12px 40px rgba(0,0,0,.28)}
+.sendpop.on{display:flex}
+.sendpop .spit{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:10px;background:transparent;text-align:left;white-space:normal;width:100%}
+.sendpop .spit:hover{background:var(--blue2)}
+.sendpop .spit.off{opacity:.5}
+.sendpop .spic{width:30px;height:30px;border-radius:8px;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;margin-top:1px}
+.sendpop .spic.g{background:var(--green)}
+.sendpop .spt{display:block;font-weight:600;font-size:14.5px}
+.sendpop .spn{color:var(--blue);font-weight:500;font-size:12.5px;margin-left:6px}
+.sendpop .spd{display:block;color:var(--mute);font-size:12.5px;line-height:1.4;margin-top:2px}
+.selbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-radius:18px;
+  background:var(--side);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 8px 30px rgba(0,0,0,.18);border:1px solid var(--sep);width:max-content;max-width:94vw;font-size:13px}
+body.selm .selbar{display:flex}
+.selbar b{margin-right:6px}
+
+@media (max-width:1100px){.wid{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
+@media (max-width:820px){.app{grid-template-columns:1fr}.side{position:static;height:auto;max-height:none}.main{padding:0 18px 90px}
+  .cm{grid-template-columns:44px 1fr}.cm textarea,.cm .bt{grid-column:1/3}}
+
+/* 傳到手機 */
+.dropz{border:2px dashed var(--sep);border-radius:14px;padding:18px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;color:var(--mute);transition:.15s}
+.dropz>.i{width:28px;height:28px;color:var(--blue)}
+.dropz.drop{border-color:var(--blue);background:var(--blue2)}
+.sdlist{max-height:220px;overflow:auto;margin-top:8px}
+.sdlist .r{display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--sep);font-size:13px}
+.sdlist .r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdlist .r .kbd{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40%}
+.sdlist .r button{padding:2px 8px}
+.sdh{display:flex;align-items:center;gap:8px;margin-top:4px}.sdh .sp{flex:1}
+.peer{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--fill);margin-bottom:6px;cursor:pointer;border:2px solid transparent}
+.peer .i{width:22px;height:22px;color:var(--blue)}
+.peer.on{border-color:var(--blue);background:var(--blue2)}
+.peer .kbd{margin-left:auto}
+.nopeer{padding:14px;border-radius:12px;background:var(--fill);color:var(--mute);font-size:13px;text-align:center}
+.sdjob{display:none;flex-direction:column;gap:6px;padding:12px;border-radius:12px;background:var(--fill)}
+.sdjob.on{display:flex}
+.sdjob .prog{width:100%;height:7px}
+.sdjob.err h4{color:var(--red)}
+.sdjob h4{margin:0;font-size:14.5px}
+.sdjob ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--mute)}
+#sendChip span{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="side" id="nav">
+  <div class="brand"><b><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg></b>Xun-Qi 尋棲</div>
+  <a class="it" data-v="home"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /> <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>首頁</a>
+  <div class="sec" data-sec="lib">
+    <div class="sh">圖庫<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg></div>
+    <div class="sb">
+      <a class="it" data-v="pending"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /> <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg>待檢視<span class="n" id="nPending"></span></a>
+      <a class="it" data-v="reviewed"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /> <path d="m16 9-5.5 5.5L8 12" /></svg>已檢視</a>
+      <a class="it" data-v="all"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /> <path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /> <circle cx="13" cy="7" r="1" fill="currentColor" /> <rect x="8" y="2" width="14" height="14" rx="2" /></svg>所有項目<span class="n" id="nAll"></span></a>
+      <a class="it" data-v="timeline"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /></svg>時間軸</a>
+      <a class="it" data-v="places"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /></svg>地點</a>
+      <a class="it" data-v="dups"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /> <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>重複項目<span class="n" id="nDups"></span></a>
+      <a class="it" data-v="removed"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6" /> <path d="M14 11v6" /> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /> <path d="M3 6h18" /> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>待刪除<span class="n" id="nRemoved"></span></a>
+    </div>
+  </div>
+  <div class="sec" data-sec="cats">
+    <div class="sh">類別<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg></div>
+    <div class="sb" id="catNav"></div>
+  </div>
+  <div class="sec" data-sec="tools">
+    <div class="sh">工具<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg></div>
+    <div class="sb">
+      <a class="it" id="openData"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg>在檔案總管中打開</a>
+      <a class="it" id="catBtn"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /></svg>管理類別</a>
+      <a class="it" id="bkBtn"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16h.01" /> <path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /> <path d="M21.946 12.013H2.054" /> <path d="M6 16h.01" /></svg>備份與還原</a>
+      <a class="it" id="locBtn"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /> <circle cx="12" cy="12" r="3" /></svg>存放位置</a>
+      <a class="it" id="reclass" title="用目前的類別設定和你改過的範例，重新分類待檢視的照片與影片"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path d="M21 3v5h-5" /> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path d="M8 16H3v5" /></svg>重新分類</a>
+      <a class="it" id="indexPlain" title="讓「傳送」收到的檔案也能被搜尋"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></svg>為「傳送」建立索引</a>
+      <a class="it" id="unload"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v2" /> <path d="M12 2v2" /> <path d="M17 20v2" /> <path d="M17 2v2" /> <path d="M2 12h2" /> <path d="M2 17h2" /> <path d="M2 7h2" /> <path d="M20 12h2" /> <path d="M20 17h2" /> <path d="M20 7h2" /> <path d="M7 20v2" /> <path d="M7 2v2" /> <rect x="4" y="4" width="16" height="16" rx="2" /> <rect x="8" y="8" width="8" height="8" rx="1" /></svg>釋放 AI 記憶體</a>
+    </div>
+  </div>
+  <div class="foot" id="where"></div>
+</nav>
+
+<main class="main">
+  <div class="tbar">
+    <span class="st" id="devChip"><span class="dot"></span><span id="devices">啟動中…</span></span>
+    <span class="st" id="model"></span>
+    <span class="st" id="geoChip" style="display:none"></span>
+    <span class="st" id="enrChip" style="display:none"></span>
+    <span class="st" id="qChip"><span id="queue"></span><span class="prog" id="qProg" style="display:none"><b></b></span></span>
+    <span class="sp"></span>
+    <span id="modebox" style="display:none"><button data-m="plain">傳送</button> <button data-m="sort">傳送並分類</button></span>
+    <button class="tbtn" id="sendChip" style="display:none" title="查看傳送進度"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /></svg><span></span></button>
+    <button class="tbtn" id="selBtn" title="選幾個項目，複製到其他資料夾或打包成 ZIP"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-1.5" /> <path d="M2 13h10" /> <path d="m5 10-3 3 3 3" /></svg>匯出檔案</button>
+    <button class="tbtn icon" id="theme" title="切換深色／淺色"></button>
+  </div>
+
+  <div class="banner warn" id="oneDrive"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" /></svg><span>檔案資料夾在 OneDrive 裡，收到的照片會同步上傳到雲端。不想上傳的話，可以在左側「工具 › 存放位置」換位置。</span></div>
+  <div class="banner info" id="restartMsg"></div>
+  <div class="banner info" id="restoreMsg"></div>
+
+  <h1 id="title">首頁</h1>
+  <p class="lead" id="lead"></p>
+  <div class="seg" id="seg" style="display:none"><a data-v="pending">待檢視</a><a data-v="reviewed">已檢視</a><a data-v="all">全部</a></div>
+
+  <div class="searchwrap">
+    <div class="search" id="searchBox">
+      <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></svg>
+      <input id="q" placeholder="搜尋照片、影片、文件裡的內容，例如：海邊夕陽、訂位代號">
+      <span class="hintr" id="imgPick" title="選一張圖片，或直接把圖片拖進來，找出相似的"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21" /> <path d="m14 19.5 3-3 3 3" /> <path d="M17 22v-5.5" /> <circle cx="9" cy="9" r="2" /></svg>以圖找圖</span>
+      <input type="file" id="imgFile" accept="image/*" style="display:none">
+      <button class="primary" id="go">搜尋</button>
+    </div>
+    <div class="sugs" id="sugs"></div>
+    <div class="filters" id="filters">
+      <select id="fCat"><option value="">所有類別</option></select>
+      <select id="fKind"><option value="">所有類型</option><option value="image">照片</option><option value="video">影片</option><option value="document">文件</option></select>
+      <select id="fPlace"><option value="">所有地點</option></select>
+      拍攝月份 <input type="month" id="fFrom"> 至 <input type="month" id="fTo">
+      <button class="link" id="fClear">清除篩選</button>
+    </div>
+  </div>
+
+  <section id="resultBox" class="batch" style="display:none">
+    <div class="bh"><span class="t" id="resultTitle">搜尋結果</span><span class="sp"></span><button id="closeRes"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg>關閉</button></div>
+    <div class="grid" id="results"></div>
+  </section>
+  <div id="notes"></div>
+  <div id="batches"></div>
+  <button class="more" id="more" style="display:none">顯示更多</button>
+</main>
+</div>
+
+<div class="lb" id="lb">
+  <button class="x" id="lbX"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /> <path d="m6 6 12 12" /></svg>關閉</button>
+  <button class="nv l" id="lbL"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg></button>
+  <img id="lbImg" alt="">
+  <video id="lbVid" controls playsinline preload="metadata"></video>
+  <div class="vidfail" id="vidFail"><span id="vidFailMsg">網頁播不了這部影片的格式，先顯示那一秒的畫面。</span><button id="lbPlay"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></svg>用電腦播放器打開</button></div>
+  <button class="nv r" id="lbR"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg></button>
+  <div class="side2">
+    <h4 id="lbName"></h4>
+    <div id="lbCat"></div>
+    <div class="kbd" id="lbWhy"></div>
+    <div class="kbd" id="lbMeta"></div>
+    <label class="kbd">改分類</label>
+    <select id="lbSel"></select>
+    <button id="lbOK" class="primary"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>分類正確</button>
+    <button id="lbSimilar"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /> <path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /> <circle cx="13" cy="7" r="1" fill="currentColor" /> <rect x="8" y="2" width="14" height="14" rx="2" /></svg>找相似的</button>
+    <button id="lbSend" title="把這個項目傳回手機"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /> <path d="M12 18h.01" /></svg>傳回手機</button>
+    <button id="lbReveal"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg>在檔案總管中顯示</button>
+    <div id="lbTextBox" style="display:none;flex-direction:column;gap:6px;min-height:0">
+      <div style="display:flex;align-items:center;gap:6px"><b style="font-size:13px">文字</b><span style="flex:1"></span><button id="lbCopy" class="link">複製</button></div>
+      <div class="lbtext" id="lbText"></div>
+    </div>
+    <div class="kbd" style="margin-top:auto">← → 切換・Esc 關閉</div>
+  </div>
+</div>
+
+<div class="modal" id="locModal"><div class="box card">
+  <h3>存放位置</h3>
+  <div class="kbd">目前：<b id="locNow"></b></div>
+  <div class="kbd">手機傳來的檔案和搜尋索引都放在這個資料夾，和程式分開。換位置不會自動搬檔案：
+    想帶著舊檔案，請先在檔案總管把整個資料夾搬過去，再在這裡選它。選到有其他檔案的資料夾時，會在裡面另建「Xun-Qi 尋棲」。</div>
+  <div style="display:flex;gap:8px"><input id="locInput" placeholder="例如 D:\照片\Xun-Qi 尋棲"><button id="locPick">選擇…</button></div>
+  <div class="err" id="locErr"></div>
+  <div class="row2"><button id="locCancel">取消</button><button class="primary" id="locSave">儲存</button></div>
+</div></div>
+<div class="sendpop" id="sendPop">
+  <button class="spit" id="spLib"><span class="spic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /> <path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /> <circle cx="13" cy="7" r="1" fill="currentColor" /> <rect x="8" y="2" width="14" height="14" rx="2" /></svg></span><span><span class="spt">從檔案庫傳回<span class="spn" id="spN"></span></span><span class="spd">把尋棲裡收到的項目傳回手機，傳前會核對檔案沒被改過</span></span></button>
+  <button class="spit" id="spPc"><span class="spic g"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2" /> <line x1="8" x2="16" y1="21" y2="21" /> <line x1="12" x2="12" y1="17" y2="21" /></svg></span><span><span class="spt">從電腦上傳</span><span class="spd">選電腦上任何檔案或資料夾，也能直接拖進來；只傳送，不加入整理</span></span></button>
+</div>
+<div class="selbar" id="selbar">
+  <b id="selN">已選取 0 個項目</b>
+  <button id="selPage">全選這頁</button>
+  <button id="selNone">取消全選</button>
+  分資料夾 <select id="selBy"><option value="">不分</option><option value="category">依類別</option><option value="month">依月份</option><option value="place">依地點</option></select>
+  <button class="primary" id="selCopy"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-1.5" /> <path d="M2 13h10" /> <path d="m5 10-3 3 3 3" /></svg>複製到資料夾…</button>
+  <button class="primary" id="selZip"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <path d="m7 10 5 5 5-5" /></svg>打包成 ZIP</button>
+  <button class="primary" id="selSend"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /> <path d="M12 18h.01" /></svg>傳到手機</button>
+  <button class="ghost" id="selExit">完成</button>
+</div>
+<div class="modal" id="expModal"><div class="box card">
+  <h3>複製到資料夾</h3>
+  <div class="kbd">會在你選的資料夾裡新建「尋棲匯出 日期時間」，把選取的項目<b>複製</b>進去。原本的檔案不會動，也不會覆蓋任何檔案。</div>
+  <div style="display:flex;gap:8px"><input id="expInput" placeholder="例如 D:\照片\給家人"><button id="expPick">選擇…</button></div>
+  <div class="err" id="expErr"></div>
+  <div class="row2"><button id="expCancel">取消</button><button class="primary" id="expGo">開始複製</button></div>
+</div></div>
+<div class="modal" id="catModal"><div class="box card wide">
+  <h3>管理類別</h3>
+  <div class="kbd">每個類別寫幾句描述（一行一句，中英文都可以），AI 會綜合判斷，寫得越具體越準。
+    改名會把「已分類」裡該類的資料夾一起搬過去；刪除類別時，裡面的檔案會改成「未分類」，不會刪除任何檔案。左邊的圖示格可以放一個表情符號，留空就用內建圖示。</div>
+  <div id="catList"></div>
+  <h3 style="margin-top:6px;font-size:15px">新增類別</h3>
+  <div class="cm" id="catNew">
+    <input class="em" maxlength="4" placeholder="🏷️">
+    <input class="nm" placeholder="名稱，例如 孩子">
+    <textarea class="ds" placeholder="一行一句，例如：&#10;小朋友在玩&#10;嬰兒照、寶寶&#10;a photo of a child playing"></textarea>
+    <div class="bt"><button class="primary" id="catAdd">新增</button></div>
+  </div>
+  <div class="err" id="catErr"></div>
+  <div class="row2"><button class="primary" id="catClose">完成</button></div>
+</div></div>
+<div class="modal" id="bkModal"><div class="box card wide">
+  <h3>備份與還原</h3>
+  <div class="kbd">備份的是「整理紀錄」：分類結果、檢視狀態、你改過的範例、自訂類別、搜尋索引、手機配對用的裝置憑證，<b>不含照片本身</b>。
+    備份檔存在檔案資料夾的「索引備份」裡，建議另外複製一份到隨身碟或雲端。還原前會先自動備份目前的狀態，換上之後要重新打開程式。</div>
+  <div class="row2" style="justify-content:flex-start"><button class="primary" id="bkMake">立即備份</button>
+    <button id="bkUp">從檔案還原…</button><input type="file" id="bkFile" accept=".zip" style="display:none">
+    <button id="bkOpen"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" /></svg>打開備份資料夾</button></div>
+  <div id="bkList"></div>
+  <div class="err" id="bkErr"></div>
+  <div class="row2"><button class="primary" id="bkClose">完成</button></div>
+</div></div>
+<div class="modal" id="sendModal"><div class="box card wide">
+  <h3 id="sdTitle">傳到手機</h3>
+  <div id="sdPc">
+    <div class="dropz" id="sdDrop"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12" /> <path d="m17 8-5-5-5 5" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg><div>把檔案拖到這裡</div>
+      <div class="row2" style="justify-content:center"><button id="sdFiles"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /> <path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M9 15h6" /> <path d="M12 18v-6" /></svg>選擇檔案…</button><button id="sdFolder"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v6" /> <path d="M9 13h6" /> <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></svg>選擇資料夾…</button></div>
+      <div class="kbd">用「選擇」加入的檔案會直接從原位置讀取，不會複製；拖進來的檔案只暫存到傳送成功為止。</div></div>
+    <div class="sdlist" id="sdList"></div>
+  </div>
+  <div class="kbd" id="sdWhat"></div>
+  <div class="sdh"><b>傳給哪支手機</b><span class="sp"></span><button class="link" id="sdScan" title="多播搜尋不到時，逐一詢問同一個網段的裝置（約 10 秒）"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /> <path d="M4 6h.01" /> <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" /> <path d="M16.24 7.76A6 6 0 1 0 8.23 16.67" /> <path d="M12 18h.01" /> <path d="M17.99 11.66A6 6 0 0 1 15.77 16.67" /> <circle cx="12" cy="12" r="2" /> <path d="m13.41 10.59 5.66-5.66" /></svg>掃描整個網路</button><button id="sdRefresh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path d="M21 3v5h-5" /> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path d="M8 16H3v5" /></svg>重新搜尋</button></div>
+  <div id="sdPeers"></div>
+  <div class="kbd">手機要和電腦連同一個 Wi‑Fi，並<b>打開 LocalSend、停在畫面上</b>才會出現。按「傳送」後，手機會跳出接收畫面，按「接受」就開始傳。想直接存進「照片」，請在手機 LocalSend 的設定開啟「儲存到相簿」。</div>
+  <div class="sdjob" id="sdJob"></div>
+  <div class="row2"><button id="sdClose">關閉</button><button class="primary" id="sdGo"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /></svg>傳送</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<script>
+// 修改類請求帶上本次啟動的憑證（伺服器會拒絕沒有憑證或來自其他網站的請求）
+const XQT=(document.querySelector('meta[name="xq-token"]')||{}).content||"";
+{const _f=window.fetch.bind(window);
+ window.fetch=(u,o={})=>{if((o.method||"GET").toUpperCase()!=="GET"){const h=new Headers(o.headers||{}); h.set("X-XQ-Token",XQT); o={...o,headers:h};} return _f(u,o);};}
+const $=s=>document.querySelector(s);
+const ICON={"building-2": "<path d=\"M10 12h4\" /> <path d=\"M10 8h4\" /> <path d=\"M14 21v-3a2 2 0 0 0-4 0v3\" /> <path d=\"M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2\" /> <path d=\"M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16\" />", "calendar": "<path d=\"M8 2v3\" /> <path d=\"M16 2v3\" /> <rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" /> <path d=\"M3 9h18\" />", "car": "<path d=\"M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2\" /> <circle cx=\"7\" cy=\"17\" r=\"2\" /> <path d=\"M9 17h6\" /> <circle cx=\"17\" cy=\"17\" r=\"2\" />", "check": "<path d=\"M20 6 9 17l-5-5\" />", "chevron-down": "<path d=\"m6 9 6 6 6-6\" />", "chevron-left": "<path d=\"m15 18-6-6 6-6\" />", "chevron-right": "<path d=\"m9 18 6-6-6-6\" />", "circle-alert": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\" /> <line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\" />", "circle-check": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"m16 9-5.5 5.5L8 12\" />", "circle-help": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\" /> <path d=\"M12 17h.01\" />", "coffee": "<path d=\"M10 2v2\" /> <path d=\"M14 2v2\" /> <path d=\"M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1\" /> <path d=\"M6 2v2\" />", "copy": "<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\" /> <path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\" />", "cpu": "<path d=\"M12 20v2\" /> <path d=\"M12 2v2\" /> <path d=\"M17 20v2\" /> <path d=\"M17 2v2\" /> <path d=\"M2 12h2\" /> <path d=\"M2 17h2\" /> <path d=\"M2 7h2\" /> <path d=\"M20 12h2\" /> <path d=\"M20 17h2\" /> <path d=\"M20 7h2\" /> <path d=\"M7 20v2\" /> <path d=\"M7 2v2\" /> <rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" /> <rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\" />", "download": "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />", "file-plus": "<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\" /> <path d=\"M14 2v5a1 1 0 0 0 1 1h5\" /> <path d=\"M9 15h6\" /> <path d=\"M12 18v-6\" />", "file-text": "<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\" /> <path d=\"M14 2v5a1 1 0 0 0 1 1h5\" /> <path d=\"M10 9H8\" /> <path d=\"M16 13H8\" /> <path d=\"M16 17H8\" />", "flower-2": "<path d=\"M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1\" /> <circle cx=\"12\" cy=\"8\" r=\"2\" /> <path d=\"M12 10v12\" /> <path d=\"M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z\" /> <path d=\"M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z\" />", "folder-open": "<path d=\"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2\" />", "folder-output": "<path d=\"M2 7.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-1.5\" /> <path d=\"M2 13h10\" /> <path d=\"m5 10-3 3 3 3\" />", "folder-plus": "<path d=\"M12 10v6\" /> <path d=\"M9 13h6\" /> <path d=\"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z\" />", "hard-drive": "<path d=\"M10 16h.01\" /> <path d=\"M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z\" /> <path d=\"M21.946 12.013H2.054\" /> <path d=\"M6 16h.01\" />", "house": "<path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\" /> <path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\" />", "image-up": "<path d=\"M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21\" /> <path d=\"m14 19.5 3-3 3 3\" /> <path d=\"M17 22v-5.5\" /> <circle cx=\"9\" cy=\"9\" r=\"2\" />", "images": "<path d=\"m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16\" /> <path d=\"M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2\" /> <circle cx=\"13\" cy=\"7\" r=\"1\" fill=\"currentColor\" /> <rect x=\"8\" y=\"2\" width=\"14\" height=\"14\" rx=\"2\" />", "inbox": "<polyline points=\"22 12 16 12 14 15 10 15 8 12 2 12\" /> <path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z\" />", "map-pin": "<path d=\"M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0\" /> <circle cx=\"12\" cy=\"10\" r=\"3\" />", "monitor": "<rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\" /> <line x1=\"8\" x2=\"16\" y1=\"21\" y2=\"21\" /> <line x1=\"12\" x2=\"12\" y1=\"17\" y2=\"21\" />", "moon": "<path d=\"M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401\" />", "mountain": "<path d=\"m8 3 4 8 5-5 5 15H2L8 3z\" />", "package": "<path d=\"M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z\" /> <path d=\"M12 22V12\" /> <polyline points=\"3.29 7 12 12 20.71 7\" /> <path d=\"m7.5 4.27 9 5.15\" />", "paw-print": "<circle cx=\"11\" cy=\"4\" r=\"2\" /> <circle cx=\"18\" cy=\"8\" r=\"2\" /> <circle cx=\"20\" cy=\"16\" r=\"2\" /> <path d=\"M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z\" />", "play": "<path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\" />", "radar": "<path d=\"M19.07 4.93A10 10 0 0 0 6.99 3.34\" /> <path d=\"M4 6h.01\" /> <path d=\"M2.29 9.62A10 10 0 1 0 21.31 8.35\" /> <path d=\"M16.24 7.76A6 6 0 1 0 8.23 16.67\" /> <path d=\"M12 18h.01\" /> <path d=\"M17.99 11.66A6 6 0 0 1 15.77 16.67\" /> <circle cx=\"12\" cy=\"12\" r=\"2\" /> <path d=\"m13.41 10.59 5.66-5.66\" />", "receipt": "<path d=\"M12 17V7\" /> <path d=\"M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8\" /> <path d=\"M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z\" />", "refresh-cw": "<path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\" /> <path d=\"M21 3v5h-5\" /> <path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\" /> <path d=\"M8 16H3v5\" />", "scan-text": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2\" /> <path d=\"M17 3h2a2 2 0 0 1 2 2v2\" /> <path d=\"M21 17v2a2 2 0 0 1-2 2h-2\" /> <path d=\"M7 21H5a2 2 0 0 1-2-2v-2\" /> <path d=\"M7 8h8\" /> <path d=\"M7 12h10\" /> <path d=\"M7 16h6\" />", "search": "<path d=\"m21 21-4.34-4.34\" /> <circle cx=\"11\" cy=\"11\" r=\"8\" />", "send": "<path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\" /> <path d=\"m21.854 2.147-10.94 10.939\" />", "settings": "<path d=\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\" /> <circle cx=\"12\" cy=\"12\" r=\"3\" />", "shopping-bag": "<path d=\"M16 10a4 4 0 0 1-8 0\" /> <path d=\"M3.103 6.034h17.794\" /> <path d=\"M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z\" />", "smartphone": "<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\" /> <path d=\"M12 18h.01\" />", "sparkles": "<path d=\"M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z\" /> <path d=\"M20 2v4\" /> <path d=\"M22 4h-4\" /> <circle cx=\"4\" cy=\"20\" r=\"2\" />", "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\" /> <path d=\"M12 2v2\" /> <path d=\"M12 20v2\" /> <path d=\"m4.93 4.93 1.41 1.41\" /> <path d=\"m17.66 17.66 1.41 1.41\" /> <path d=\"M2 12h2\" /> <path d=\"M20 12h2\" /> <path d=\"m6.34 17.66-1.41 1.41\" /> <path d=\"m19.07 4.93-1.41 1.41\" />", "tag": "<path d=\"M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z\" /> <circle cx=\"7.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" />", "trash-2": "<path d=\"M10 11v6\" /> <path d=\"M14 11v6\" /> <path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\" /> <path d=\"M3 6h18\" /> <path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\" />", "undo-2": "<path d=\"M9 14 4 9l5-5\" /> <path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\" />", "upload": "<path d=\"M12 3v12\" /> <path d=\"m17 8-5-5-5 5\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" />", "user": "<path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\" /> <circle cx=\"12\" cy=\"7\" r=\"4\" />", "users": "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /> <path d=\"M16 3.128a4 4 0 0 1 0 7.744\" /> <path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /> <circle cx=\"9\" cy=\"7\" r=\"4\" />", "utensils": "<path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2\" /> <path d=\"M7 2v20\" /> <path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\" />", "x": "<path d=\"M18 6 6 18\" /> <path d=\"m6 6 12 12\" />"};
+const I=(n,c="i")=>`<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICON[n]||ICON["tag"]}</svg>`;
+// 內建類別用線條圖示；自訂類別如果有設定表情符號就用它，沒有就用標籤圖示
+const CI={"美食":"utensils","飲品甜點":"coffee","自然風景":"mountain","城市街景":"building-2","人物":"user","合照聚會":"users","寵物動物":"paw-print","植物花卉":"flower-2","交通工具":"car","文件收據":"receipt","商品購物":"shopping-bag","截圖":"smartphone","未分類":"circle-help","疑似重複":"copy","其他檔案":"package","傳送":"inbox"};
+const EMO={};
+const catIcon=c=>CI[c]?I(CI[c]):(EMO[c]?`<span class="em">${esc(EMO[c])}</span>`:I("tag"));
+const HUE={"美食":18,"飲品甜點":330,"自然風景":135,"城市街景":215,"人物":265,"合照聚會":295,"寵物動物":35,"植物花卉":350,"交通工具":195,"文件收據":50,"商品購物":175,"截圖":230,"傳送":212};
+const dark=()=>document.documentElement.dataset.theme==="dark";
+function catChip(c){const h=HUE[c], gray=h==null;
+  const bg=gray?"var(--fill)":(dark()?`hsl(${h} 45% 22%)`:`hsl(${h} 80% 94%)`), fg=gray?"var(--ink)":(dark()?`hsl(${h} 70% 78%)`:`hsl(${h} 60% 34%)`);
+  return `<span class="cat" style="background:${bg};color:${fg}">${catIcon(c)}${esc(c)}</span>`;}
+// 提示：至少停 5 秒，字多再久一點；選取模式時放在下方工具列的上面，不互相蓋住
+const toast=t=>{const e=$("#toast");e.textContent=t;
+  const bar=document.body.classList.contains("selm")&&$("#selbar"); e.style.bottom=bar?(bar.offsetHeight+20+12)+"px":"";
+  e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),Math.max(5000,String(t).length*130));};
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let DATA="",CATS=[],VIEW="home",CAT="",LIMIT=30,lastKey="",BP={},LIST=[],LBI=-1,STATUS={};
+let SELMODE=false; const SEL=new Set();
+const NOTES={};   // 這次開啟網頁後確認完成的批次 → 「可以從手機刪除了」（重新整理網頁就收起）
+let JUMP=null;    // 要捲過去的批次
+
+// ---------- 側邊欄：可收合，記住上次的開合狀態
+const SEC_DEFAULT={lib:true,cats:true,tools:false};
+document.querySelectorAll(".sec").forEach(s=>{const k=s.dataset.sec, v=localStorage.getItem("sec:"+k);
+  s.classList.toggle("closed",!(v==null?SEC_DEFAULT[k]:v==="1"));
+  s.querySelector(".sh").onclick=()=>{s.classList.toggle("closed"); localStorage.setItem("sec:"+k,s.classList.contains("closed")?"0":"1");};});
+
+// ---------- 檢視切換
+const TITLES={pending:"待檢視",reviewed:"已檢視",all:"所有項目",timeline:"時間軸",places:"地點",dups:"重複項目",removed:"待刪除"};
+function greet(){const h=new Date().getHours(), n=STATUS.user_name;
+  return (h<5?"晚安":h<11?"早安":h<18?"午安":"晚安")+(n?`，${n}`:"");}
+function paintNav(){
+  document.querySelectorAll("#nav a[data-v]").forEach(x=>x.classList.toggle("on",x.dataset.v===VIEW&&!CAT));
+  document.querySelectorAll("#seg a").forEach(x=>x.classList.toggle("on",x.dataset.v===VIEW));
+  $("#seg").style.display=["pending","reviewed","all"].includes(VIEW)?"inline-flex":"none";
+  $("#title").textContent=VIEW==="home"?greet():(CAT||TITLES[VIEW]);
+  $("#sugs").style.display=VIEW==="home"?"":"none"; $("#filters").style.display=VIEW==="home"?"none":"";
+  $("#catNav")._k=""; renderCatNav(STATUS.counts||{});}
+function setView(v,keepCat){VIEW=v; if(!keepCat) CAT=""; LIMIT=30; lastKey=""; paintNav(); $("#lead").textContent=""; loadBatches(); window.scrollTo({top:0});}
+document.querySelectorAll("#nav a[data-v], #seg a").forEach(a=>a.onclick=()=>setView(a.dataset.v,a.closest("#seg")));
+
+// ---------- 一張縮圖
+function tile(r){
+  const d=document.createElement("div");d.className="tile";
+  const vis=r.kind==="image"||r.kind==="video";
+  d.innerHTML=`<div class="im"></div>`;
+  const im=d.querySelector(".im");
+  if(vis) im.style.backgroundImage=`url(/api/thumb?id=${r.id}&s=360${r.t!=null?"&t="+r.t:""})`;
+  else {im.innerHTML=I(r.kind==="document"?"file-text":"package")+`<span class="fn"></span>`; im.querySelector(".fn").textContent=r.name;}
+  if(r.snip){const sn=document.createElement("div");sn.className="snip";sn.innerHTML=markSnip(r.snip);sn.title="照片／文件裡的文字";d.append(sn);}
+  const cat=r.duplicate_of?"疑似重複":(r.category||"");
+  const pct=(r.score!=null&&!r.sim&&r.mode!=="plain"&&!r.corrected&&r.doubt)?` <span class="pct">${Math.round(r.score*100)}%</span>`:"";
+  if(cat){const t=document.createElement("span");t.className="tag";t.innerHTML=esc(cat)+pct+(r.corrected?" "+I("check"):"");
+    if(r.corrected) t.title="你手動改過"; d.append(t);}
+  if(r.kind==="video"){const v=document.createElement("span");v.className="vid"+(r.t!=null?" at":"");v.innerHTML=I("play")+(r.t!=null?fmtT(r.t):"影片");
+    if(r.t!=null) v.title="影片裡最符合的那一秒"; d.append(v);}
+  if(r.reviewed&&VIEW!=="reviewed"){const f=document.createElement("span");f.className="flag";f.innerHTML=I("check");f.title="已檢視";d.append(f);}
+  if(r.doubt){const w=document.createElement("div");w.className="why";w.innerHTML=I("sparkles")+esc(r.doubt);d.append(w);}
+  const hov=document.createElement("div");hov.className="hov";
+  if(r.duplicate_of&&!r.removed){const cb=document.createElement("button");cb.textContent="比較";cb.title="和相似的項目並排比較";
+    cb.onclick=e=>{e.stopPropagation();goDups(r.id);};hov.append(cb);}
+  if(r.mode==="sort"&&CATS.length){
+    const sel=document.createElement("select");
+    // 每次點開才依目前的類別產生選項：新增／改名類別後，舊縮圖的選單也會是最新的
+    const fill=()=>{const k=JSON.stringify([CATS,EMO]); if(sel._k===k) return; sel._k=k;
+      sel.innerHTML=`<option value="">改分類…</option>`+CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");};
+    fill(); ["mousedown","focus","keydown"].forEach(ev=>sel.addEventListener(ev,fill));
+    sel.onclick=e=>e.stopPropagation(); sel.onchange=()=>setCat(r,sel.value);
+    hov.append(sel);
+  }
+  if(r.doubt&&!r.duplicate_of){const ok=document.createElement("button");ok.textContent="分類正確";ok.title="AI 分得對，不用改";
+    ok.onclick=e=>{e.stopPropagation();markOK(r);};hov.append(ok);}
+  if(hov.children.length) d.append(hov);
+  const ck=document.createElement("span");ck.className="ck";ck.innerHTML=I("check");d.append(ck);
+  if(SEL.has(r.id)) d.classList.add("sel");
+  d.dataset.id=r.id;
+  d.onclick=()=>{ if(SELMODE){toggleSel(r.id,d);return;} openLB(r); };
+  if(r.place1||r.taken) d.title=[r.name,r.place1&&("地點："+[r.place1,r.place2].filter(Boolean).join(" ")),r.taken&&("拍攝："+r.taken)].filter(Boolean).join("\n");
+  return d;
+}
+const fmtT=t=>{t=Math.floor(t);const h=Math.floor(t/3600),m=Math.floor(t%3600/60),x=String(t%60).padStart(2,"0");return h?`${h}:${String(m).padStart(2,"0")}:${x}`:`${m}:${x}`;};
+const markSnip=sn=>esc(sn.text.slice(0,sn.a))+"<mark>"+esc(sn.text.slice(sn.a,sn.b))+"</mark>"+esc(sn.text.slice(sn.b));
+async function markOK(r){await fetch(`/api/check?id=${r.id}`,{method:"POST"}); r.doubt=null; toast("好的，這個項目不用改"); lastKey=""; loadBatches();}
+async function setCat(r,c){ if(!c) return;
+  const res=await (await fetch(`/api/set_category?id=${r.id}&cat=${encodeURIComponent(c)}`,{method:"POST"})).json();
+  if(!res.ok){toast(res.error);return;} toast(`已改成「${c}」，之後相似的照片會自動學會`); r.category=c; r.corrected=1; r.duplicate_of=null; r.doubt=null; lastKey=""; loadBatches();
+  if(!$("#lb").classList.contains("on")) rerun(); else REDO=true; }
+let REDO=false;
+
+const pad2=n=>String(n).padStart(2,"0");
+function fmt(t){const d=new Date(t*1000), now=new Date(), y=new Date(now-864e5), hm=`${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  if(d.toDateString()===now.toDateString()) return "今天 "+hm;
+  if(d.toDateString()===y.toDateString()) return "昨天 "+hm;
+  return (d.getFullYear()!==now.getFullYear()?d.getFullYear()+"年":"")+`${d.getMonth()+1}月${d.getDate()}日 ${hm}`;}
+const kinds=(i,v,o)=>[i&&`${i} 張照片`,v&&`${v} 段影片`,o&&`${o} 個其他檔案`].filter(Boolean).join("、")||"沒有項目";
+
+// ---------- 可以從手機刪除了
+function rangeTxt(a,b){ if(!a) return "讀不到拍攝時間";
+  const p=s=>{const [d,t]=s.split("T"); const [y,m,dd]=d.split("-").map(Number); return {y,m,d:dd,t,day:d};};
+  const x=p(a), z=p(b), A=`${x.y}年${x.m}月${x.d}日 ${x.t}`;
+  if(a===b) return A; if(x.day===z.day) return `${A} 至 ${z.t}`;
+  return `${A} 至 ${z.y!==x.y?z.y+"年":""}${z.m}月${z.d}日 ${z.t}`;}
+function renderNotes(){
+  const box=$("#notes"); box.innerHTML="";
+  if(!["pending","reviewed","all"].includes(VIEW)||CAT) return;
+  Object.values(NOTES).forEach(n=>{const el=document.createElement("div");
+    const phone=/iphone|ipad/i.test(n.sender)?"iPhone":"手機";
+    if(n.checking){el.className="box note"; el.innerHTML=`<div class="big">${I("refresh-cw")}</div><div><h4>正在檢查這批是否都完整存到電腦…</h4><p>${esc(n.label)}・${n.count} 個項目</p></div>`; box.append(el); return;}
+    if(n.ok){el.className="box note";
+      el.innerHTML=`<div class="big">${I("smartphone")}</div><div style="flex:1;min-width:0"><h4>已安全存到這部電腦，可以從 ${phone} 刪除了</h4>
+        <p>「${esc(n.label)}」這批的 ${n.total} 個項目都檢查過了，每個都完整而且打得開。</p>
+        <div class="kv"><div><span>項目</span>${kinds(n.images,n.videos,n.others)}</div><div><span>拍攝時間</span>${esc(rangeTxt(n.first,n.last))}</div></div>
+        <p>${phone==="iPhone"?"在 iPhone 打開「照片」，找到這段時間，點「選取」，再用手指滑過要刪除的項目。刪除的項目會在「最近刪除」保留 30 天。":"在手機的相簿找到這段時間，選取這些項目後刪除。"}本程式不會刪除手機或電腦上的任何檔案。</p>
+        <div class="acts"><button class="sh">${I("images")}顯示這 ${n.total} 個項目</button><button class="primary ok">好</button></div></div>`;}
+    else if(n.busy && n.bad.length===n.busy){el.className="box note";
+      el.innerHTML=`<div class="big">${I("refresh-cw")}</div><div style="flex:1;min-width:0"><h4>這批還有 ${n.busy} 個項目在處理，先不要從${phone}刪除</h4>
+        <p>「${esc(n.label)}」處理完後，會自動重新檢查。</p>
+        <div class="acts"><button class="sh">${I("images")}顯示這批</button><button class="primary ok">好</button></div></div>`;}
+    else {el.className="box note bad";
+      el.innerHTML=`<div class="big">${I("circle-alert")}</div><div style="flex:1;min-width:0"><h4>先不要從${phone}刪除</h4>
+        <p>「${esc(n.label)}」這批有 ${n.bad.length} 個項目檢查沒通過，請保留手機上的原檔，重新傳一次。</p>
+        <ul>${n.bad.slice(0,8).map(b=>`<li>${esc(b.name)}：${esc(b.why)}</li>`).join("")}${n.bad.length>8?`<li>還有 ${n.bad.length-8} 個</li>`:""}</ul>
+        <div class="acts"><button class="sh">${I("images")}顯示這批</button><button class="primary ok">好</button></div></div>`;}
+    el.querySelector(".ok").onclick=()=>{delete NOTES[n.batch]; renderNotes();};
+    el.querySelector(".sh").onclick=()=>{JUMP=n.batch; setView("reviewed");};
+    box.append(el);});
+}
+async function checkBatch(b){
+  const again=NOTES[b.id]&&NOTES[b.id].busy;   // 處理中的自動重查，不再閃「正在檢查」
+  if(!again){NOTES[b.id]={batch:b.id,checking:true,label:b.label,count:b.total}; renderNotes();}
+  try{const r=await (await fetch(`/api/batch_check?batch=${encodeURIComponent(b.id)}`)).json();
+    if(NOTES[b.id]) NOTES[b.id]={...r,label:b.label};
+    if(r.busy && r.bad.length===r.busy) setTimeout(()=>{if(NOTES[b.id]) checkBatch(b);},5000);
+    if(again){renderNotes(); return;}}
+  catch(e){delete NOTES[b.id]; toast("檢查失敗，請稍後再試");}
+  renderNotes(); window.scrollTo({top:$("#notes").getBoundingClientRect().top+scrollY-70,behavior:"smooth"});
+}
+
+// ---------- 批次（待檢視、已檢視、所有項目）
+async function loadBatches(){
+  if(VIEW==="home") return loadHome();
+  renderNotes();
+  if(VIEW==="dups") return loadDups();
+  if(VIEW==="removed") return loadRemoved();
+  if(VIEW==="timeline") return loadTimeline();
+  if(VIEW==="places") return loadPlaces();
+  const r=await (await fetch(`/api/batches?view=${VIEW}&limit=${LIMIT}&cat=${encodeURIComponent(CAT)}`)).json();
+  const nFiles=r.batches.reduce((a,b)=>a+b.files.length,0);
+  if(VIEW==="pending"&&!CAT) $("#nPending").textContent=nFiles||"";
+  const key=JSON.stringify([VIEW,CAT,LIMIT,BP,CATS,r.batches.map(b=>[b.id,b.reviewed,b.total,b.files.map(f=>[f.id,f.category,f.reviewed,f.doubt])])]);
+  if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=r.total?`${r.total} 批${r.total>r.batches.length?`（顯示最新 ${r.batches.length} 批）`:""}・${nFiles} 個項目`:"";
+  const box=$("#batches"); box.innerHTML=""; LIST=[];
+  if(!r.batches.length){box.innerHTML=`<div class="box empty">${I(VIEW==="pending"?"circle-check":"images")}${VIEW==="pending"?"全部檢視完了，沒有待檢視的項目":"這裡還沒有項目"}</div>`;}
+  r.batches.forEach(b=>{
+    const sec=document.createElement("section");sec.className="batch";sec.dataset.bid=b.id;
+    const busy=BP[b.id]||0, pc=Math.round(b.reviewed/b.total*100);
+    b.label=b.id==="legacy"?"舊版收到的檔案":fmt(b.started_at);
+    sec.innerHTML=`<div class="bh"><span class="t"></span><span class="m">${b.id==="legacy"?"":'<span class="snd"></span>・'}${b.mode==="plain"?"傳送":"傳送並分類"}・${b.total} 個項目${busy?`・還有 ${busy} 個分類中`:""}
+      ${VIEW!=="reviewed"&&b.reviewed?`<span class="prog"><b style="width:${pc}%"></b></span>已檢視 ${b.reviewed}`:""}</span><span class="sp"></span></div><div class="body"></div>`;
+    sec.querySelector(".t").textContent=b.label; const snd=sec.querySelector(".snd"); if(snd) snd.textContent=b.sender||"手機";
+    const btn=document.createElement("button");
+    if(b.reviewed<b.total){btn.className="primary";btn.innerHTML=I("circle-check")+"完成檢視";
+      btn.onclick=async()=>{ if(busy&&!confirm("這批還有項目在分類中，只會把已分類好的標示為已檢視，剩下的會留在待檢視。繼續？"))return;
+        await fetch(`/api/confirm_batch?batch=${encodeURIComponent(b.id)}`,{method:"POST"}); toast("已移到「已檢視」"); lastKey="";
+        checkBatch(b); loadBatches(); };
+    } else {btn.innerHTML=I("undo-2")+"移回待檢視";
+      btn.onclick=async()=>{await fetch(`/api/unconfirm_batch?batch=${encodeURIComponent(b.id)}`,{method:"POST"}); delete NOTES[b.id]; renderNotes(); toast("已移回待檢視"); lastKey=""; loadBatches();};}
+    if(b.exact_dups&&b.reviewed<b.total){const cx=document.createElement("button");cx.innerHTML=I("copy")+`移走 ${b.exact_dups} 個完全相同的`;
+      cx.title="和以前收過的檔案一模一樣，移到「待刪除」資料夾";
+      cx.onclick=async()=>{if(!confirm(`這批有 ${b.exact_dups} 個項目和以前收過的一模一樣。\n要把它們移到「待刪除」資料夾嗎？（不會刪除，之後可以移回）`))return;
+        const x=await (await fetch(`/api/clear_exact?batch=${encodeURIComponent(b.id)}`,{method:"POST"})).json();
+        toast(x.ok?`已把 ${x.removed} 個移到「待刪除」`:x.error); lastKey=""; loadBatches();};
+      sec.querySelector(".bh").append(cx);}
+    const sb2=document.createElement("button"); sb2.innerHTML=I("smartphone")+"傳回手機"; sb2.title="把這批全部用 LocalSend 傳回手機";
+    sb2.onclick=()=>openSend({batch:b.id,count:b.total,label:b.label}); sec.querySelector(".bh").append(sb2);
+    sec.querySelector(".bh").append(btn);
+    const body=sec.querySelector(".body");
+    const dz=b.files.filter(f=>f.doubt), rest=b.files.filter(f=>!f.doubt);
+    const part=(files,label,cls)=>{ if(!files.length) return;
+      if(label){const h=document.createElement("div");h.className="sub "+cls;h.innerHTML=label;body.append(h);}
+      const g=document.createElement("div");g.className="grid";files.forEach(f=>{LIST.push(f);g.append(tile(f));});body.append(g);};
+    if(dz.length){part(dz,`${I("sparkles")}建議檢查（${dz.length}）・AI 不太確定，看一下對不對`,"warn"); part(rest,rest.length?`其他（${rest.length}）`:"","");}
+    else part(rest,"","");
+    box.append(sec);
+  });
+  $("#more").style.display=r.total>r.batches.length?"":"none";
+  if(JUMP){const s=box.querySelector(`[data-bid="${CSS.escape(JUMP)}"]`); JUMP=null;
+    if(s){setTimeout(()=>{window.scrollTo({top:s.getBoundingClientRect().top+scrollY-70,behavior:"smooth"}); s.classList.add("hl");},60);}}
+}
+
+// ---------- 首頁
+const gb=n=>n==null?"":(n>=1073741824?(n/1073741824).toFixed(1)+" GB":n>=1048576?Math.round(n/1048576)+" MB":Math.max(1,Math.round(n/1024))+" KB");
+function hw(s){ if(!s) return ""; const m=/已載入（(.+)）/.exec(s);
+  if(m){const d=m[1].toLowerCase(); return "使用中・"+(d.includes("cuda")?"NVIDIA 顯示卡":d.includes("xpu")?"Intel 顯示卡":d.includes("dml")||d.includes("directml")?"顯示卡":d.includes("cpu")?"處理器":m[1]);}
+  if(s.startsWith("未載入")) return "需要時自動啟動"; return s;}
+async function loadHome(){
+  const h=await (await fetch("/api/home")).json();
+  $("#title").textContent=greet();
+  const key=JSON.stringify(["home",h,STATUS.model,STATUS.enrich,STATUS.pending,CATS,EMO,dark()]); if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=h.total?`${h.total} 個項目`+(h.last?`，最近一次是${fmt(h.last.started_at)} 從「${h.last.sender||"手機"}」收到。`:"。"):"還沒有收到任何項目。在手機的 LocalSend 選擇這部電腦就能開始傳送。";
+  const box=$("#batches"); box.innerHTML=""; $("#more").style.display="none"; LIST=[];
+  const W=(v,ic,cls,label,num,unit,sub)=>`<div class="box w${num?"":" dim"}" data-go="${v}"><div class="top ${cls}">${I(ic)}${label}</div><div class="num">${num}<small>${unit}</small></div><div class="sub">${sub}</div></div>`;
+  let html=h.dim_mismatch?`<div class="box note"><div class="big">${I("refresh-cw")}</div><div style="flex:1;min-width:0"><h4>有 ${h.dim_mismatch} 個項目的搜尋索引需要重建</h4>
+    <p>換了模型版本或向量維度，舊的索引暫時搜不到。重建只會重新計算索引，不會移動任何檔案。</p>
+    <div class="acts"><button class="primary" id="reidx">重建索引</button></div></div></div>`:"";
+  html+=`<div class="wid">${W("pending","inbox","c-b","待檢視",h.pending_files,"個項目",h.pending_batches?`${h.pending_batches} 批`:"全部檢視完了")}
+    ${W("pending","sparkles","c-o","建議檢查",h.doubts,"個","AI 不太確定")}
+    ${W("dups","copy","c-g","重複項目",h.dup_groups,"組","可以挑一個留下")}
+    ${W("removed","trash-2","c-r","待刪除",h.removed,"個","需要你自己刪除")}</div>`;
+  const en=STATUS.enrich||{}, left=(en.ocr_left||0)+(en.seg_left||0);
+  const rows=[["#5e5ce6","sparkles","AI 分類"+(STATUS.edition?"（"+STATUS.edition+"）":""),hw(STATUS.model)],["#0071e3","scan-text","文字辨識",hw(en.ocr)],
+    ["#28a745","refresh-cw","背景整理",STATUS.pending?`處理中，剩 ${STATUS.pending} 個`:left?(en.paused?`已暫停，剩 ${left} 個`:`補做中，剩 ${left} 個`):"已完成"],
+    ["#8e8e93","hard-drive","使用空間",`${gb(h.used)}${h.free!=null?`，剩餘 ${gb(h.free)}`:""}`]];
+  let recent="";
+  if(h.last){const th=h.last.thumbs, extra=h.last.total-Math.min(th.length,h.last.total>6?5:6);
+    const cells=(h.last.total>6?th.slice(0,5):th).map(id=>`<div style="background-image:url(/api/thumb?id=${id}&s=360)"></div>`).join("")+(h.last.total>6?`<div class="more">+${extra}</div>`:"");
+    recent=`<div class="box pad"><div class="meta">${esc(fmt(h.last.started_at))}・${esc(h.last.sender||"手機")}・${kinds(h.last.images,h.last.videos,h.last.others)}</div>${th.length?`<div class="strip" id="recentStrip">${cells}</div>`:""}</div>`;}
+  else recent=`<div class="box empty">${I("smartphone")}還沒有收到項目</div>`;
+  html+=`<div class="two"><div><h2>最近收到<button class="link" id="recentAll">全部顯示</button></h2>${recent}</div>
+    <div><h2>這部電腦</h2><div class="box grp">${rows.map(r=>`<div class="row"><span class="ib" style="background:${r[0]}">${I(r[1])}</span>${r[2]}<span class="v">${esc(r[3])}</span></div>`).join("")}</div></div></div>`;
+  const cats=h.categories.filter(c=>c.n);
+  if(cats.length) html+=`<h2>類別<button class="link" id="catEdit">編輯</button></h2><div class="albums">${cats.map(c=>`<div class="al" data-cat="${esc(c.name)}"><div class="im" data-covers="${(c.covers||[]).join(",")}">${catIcon(c.name)}</div><b>${esc(c.name)}</b><span>${c.n}</span></div>`).join("")}</div>`;
+  box.innerHTML=html;
+  box.querySelectorAll(".al .im[data-covers]").forEach(setCover);
+  box.querySelectorAll("[data-go]").forEach(e=>e.onclick=()=>setView(e.dataset.go));
+  box.querySelectorAll(".al").forEach(e=>e.onclick=()=>{CAT=e.dataset.cat; setView("all",true);});
+  const ra=$("#recentAll"); if(ra) ra.onclick=()=>{if(h.last) JUMP=h.last.id; setView("all");};
+  const rs=$("#recentStrip"); if(rs) rs.onclick=()=>{if(h.last) JUMP=h.last.id; setView("all");};
+  const ce=$("#catEdit"); if(ce) ce.onclick=()=>$("#catBtn").click();
+  const ri=$("#reidx"); if(ri) ri.onclick=async()=>{const r=await post("/api/reindex",{}); toast(`開始重建 ${r.queued} 個項目的索引`); lastKey="";};
+}
+// 類別封面：依序試候選照片，第一張讀得到的才放上去；全部失敗就留著類別圖示
+function setCover(el){const ids=el.dataset.covers.split(",").filter(Boolean);
+  const next=()=>{const id=ids.shift(); if(!id) return; const u=`/api/thumb?id=${id}&s=360`, im=new Image();
+    im.onload=()=>{el.style.backgroundImage=`url(${u})`; el.innerHTML="";}; im.onerror=next; im.src=u;};
+  next();}
+const SUGS=["夜市小吃","訂位代號","海邊夕陽","貓咪睡覺","發票"];
+$("#sugs").innerHTML=SUGS.map(s=>`<span>${s}</span>`).join("");
+$("#sugs").querySelectorAll("span").forEach(s=>s.onclick=()=>{$("#q").value=s.textContent;search();});
+
+function renderCatNav(counts){
+  const nav=$("#catNav"); const all=[...CATS,"疑似重複","其他檔案","傳送"].filter(c=>counts[c]||CATS.includes(c));
+  const key=JSON.stringify([all,counts,CAT,EMO]); if(nav._k===key) return; nav._k=key; nav.innerHTML="";
+  all.forEach(c=>{const a=document.createElement("a"); a.className="it"+(c===CAT?" on":"");
+    a.innerHTML=`${catIcon(c)}${esc(c)}<span class="n">${counts[c]||0}</span>`;
+    a.onclick=()=>{ if(CAT===c){setView(VIEW==="home"||!["pending","reviewed","all"].includes(VIEW)?"all":VIEW);return;}
+      CAT=c; setView(["pending","reviewed","all"].includes(VIEW)?VIEW:"all",true);}; nav.append(a);});
+}
+let maxPending=0;
+async function refresh(){
+  try{
+    const s=await (await fetch("/api/status")).json(); STATUS=s;
+    $("#devChip .dot").className="dot";
+    $("#devices").textContent=s.devices.length?"手機上選："+s.devices.map(d=>d.alias).join("、"):"準備中…";
+    $("#model").textContent="AI："+hw(s.model)+((s.enrich&&s.enrich.ocr)?"・文字辨識："+hw(s.enrich.ocr):"");
+    if(s.pending){maxPending=Math.max(maxPending,s.pending); $("#queue").textContent=`正在處理 ${s.busy||""}（剩 ${s.pending} 個）`;
+      $("#qProg").style.display=""; $("#qProg b").style.width=Math.round((1-s.pending/maxPending)*100)+"%";}
+    else{maxPending=0; $("#queue").textContent=""; $("#qProg").style.display="none";}
+    CATS=s.categories||[]; BP=s.batch_pending||{}; Object.keys(EMO).forEach(k=>delete EMO[k]); Object.assign(EMO,s.emojis||{});
+    const fc=$("#fCat"), fk=JSON.stringify([CATS,s.emojis]);
+    if(fc._k!==fk&&CATS.length){fc._k=fk; const v=fc.value; fc.innerHTML=`<option value="">所有類別</option>`;
+      [...CATS,"疑似重複","其他檔案","傳送"].forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;fc.append(o);}); fc.value=v;}
+    const pk=JSON.stringify(s.counts)+s.geo_left; if($("#fPlace")._k!==pk){$("#fPlace")._k=pk; loadPlaceOptions();}
+    const en=s.enrich||{}, ec=$("#enrChip"), left=(en.ocr_left||0)+(en.seg_left||0);
+    if(left||en.error){ ec.style.display="";
+      const parts=[en.ocr_left?`讀文字剩 ${en.ocr_left}`:"", en.seg_left?`影片片段剩 ${en.seg_left}`:""].filter(Boolean).join("・");
+      const k=JSON.stringify([parts,en.paused,en.error]);
+      if(ec._k!==k){ec._k=k; ec.innerHTML=(en.error?`⚠ ${esc(en.error)}`:"背景整理："+esc(parts)+(en.paused?"（已暫停）":""))+`<button id="enrBtn">${en.paused?"繼續":"暫停"}</button>`;
+        ec.title="舊項目在背景補做文字辨識和影片片段；有新檔案要分類時會先讓路";
+        $("#enrBtn").onclick=async()=>{await fetch(`/api/enrich_pause?pause=${en.paused?0:1}`,{method:"POST"}); refresh();};}
+    } else ec.style.display="none";
+    const gc=$("#geoChip"); if(s.geo_left){gc.style.display="";gc.textContent=`補讀地點中（剩 ${s.geo_left}）`;} else gc.style.display="none";
+    const rs=$("#restoreMsg"); if(s.restore_pending){rs.style.display="flex";rs.innerHTML=I("hard-drive")+"<span>已排定還原索引備份。請關閉黑色視窗，再重新執行 start.bat 就會換上。 <a href='#' id='rsCancel'>取消還原</a></span>";
+      $("#rsCancel").onclick=async e=>{e.preventDefault();await fetch("/api/backup_cancel",{method:"POST"});toast("已取消還原");refresh();};}
+    else if(s.restored){rs.style.display="flex";rs.innerHTML=I("hard-drive")+"<span>已換上你選的索引備份。</span>";} else rs.style.display="none";
+    const cnt=s.counts||{}; renderCatNav(cnt);
+    $("#nDups").textContent=cnt["疑似重複"]||""; $("#nRemoved").textContent=s.removed||"";
+    $("#nAll").textContent=Object.values(cnt).reduce((a,b)=>a+b,0)||"";
+    $("#where").textContent="存放位置："+s.data_dir; DATA=s.data_dir;
+    $("#oneDrive").style.display=s.onedrive?"flex":"none";
+    const rm=$("#restartMsg"); if(s.pending_location){rm.style.display="flex";rm.innerHTML=I("settings")+`<span>存放位置已改成「${esc(s.pending_location)}」。請關閉黑色視窗，再重新執行 start.bat 才會生效。</span>`;} else rm.style.display="none";
+    if(s.errors.length&&s.errors[0].name!==refresh._err){refresh._err=s.errors[0].name; toast("最近錯誤："+s.errors[0].name);}
+    if(s.mode_select==="web"){$("#modebox").style.display="";document.querySelectorAll("#modebox button").forEach(b=>b.classList.toggle("primary",b.dataset.m===s.web_mode));}
+    if(VIEW==="home") $("#title").textContent=greet();
+    const busyUI=$("#lb").classList.contains("on")||document.querySelector(".modal.on")||(document.activeElement&&["SELECT","INPUT","TEXTAREA"].includes(document.activeElement.tagName));
+    if(!busyUI) loadBatches();
+  }catch(e){$("#devices").textContent="連不到程式，請確認黑色視窗還開著";$("#devChip .dot").className="dot idle";}
+}
+// ---------- 大圖
+function openLB(r){LBI=LIST.findIndex(x=>x.id===r.id); if(LBI<0){LIST=[r];LBI=0;} showLB(); $("#lb").classList.add("on");}
+function showLB(){const r=LIST[LBI]; if(!r) return;
+  const vid=$("#lbVid"), img=$("#lbImg"); $("#vidFail").style.display="none";
+  $("#vidFailMsg").textContent="網頁播不了這部影片的格式，先顯示那一秒的畫面。"; $("#lbPlay").innerHTML=I("play")+"用電腦播放器打開"; $("#lbPlay").style.display="";
+  vid.pause(); vid.onerror=vid.onloadedmetadata=null;
+  if(r.kind==="video"&&!r.removed){
+    // 先用網頁播放（從最符合的那一秒開始）；播不了（例如 HEVC）就顯示那一秒的畫面
+    const fail=()=>{vid.style.display="none"; vid.removeAttribute("src"); vid.load(); img.style.display=""; img.src=`/api/thumb?id=${r.id}&s=1600${r.t!=null?"&t="+r.t:""}`; $("#vidFail").style.display="flex";};
+    img.style.display="none"; vid.style.display="block";
+    vid.onerror=fail;
+    vid.onloadedmetadata=()=>{ if(!vid.videoWidth) return fail(); if(r.t!=null) vid.currentTime=r.t; };
+    vid.src=`/api/file?id=${r.id}`;
+  } else {
+    vid.style.display="none"; if(vid.getAttribute("src")){vid.removeAttribute("src"); vid.load();}
+    const vis=r.kind==="image"||r.kind==="video";
+    img.style.display=vis?"":"none"; img.src=vis?`/api/thumb?id=${r.id}&s=1600`:"";
+    if(!vis&&!r.removed){ const doc=r.kind==="document";
+      $("#vidFailMsg").textContent=doc?"為了安全，文件不會在網頁裡開啟。":"為了安全，這種檔案不會在網頁裡開啟，可以用「在檔案總管中顯示」找到它。";
+      $("#lbPlay").innerHTML=I("folder-open")+"用電腦開啟"; $("#lbPlay").style.display=doc?"":"none"; $("#vidFail").style.display="flex"; }
+  }
+  loadLBText(r);
+  $("#lbName").textContent=r.name; $("#lbCat").innerHTML=catChip(r.duplicate_of?"疑似重複":r.category)+(r.score!=null&&!r.corrected&&r.mode!=="plain"?` <span class="kbd">信心 ${Math.round(r.score*100)}%</span>`:"")+(r.corrected?` <span class="kbd">你手動改過</span>`:"");
+  $("#lbWhy").textContent=r.doubt?("建議檢查："+r.doubt):(r.reason||""); $("#lbOK").style.display=(r.doubt&&!r.duplicate_of)?"":"none"; const sel=$("#lbSel");
+  $("#lbSimilar").style.display=(r.removed||!(r.kind==="image"||r.kind==="video"))?"none":"";
+  $("#lbMeta").textContent=[r.taken&&("拍攝："+r.taken),r.place1&&("地點："+[r.place1,r.place2].filter(Boolean).join(" "))].filter(Boolean).join("　");
+  sel.innerHTML=`<option value="">選擇正確類別…</option>`+CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(""); sel.disabled=r.mode!=="sort";}
+$("#lbSel").onchange=async e=>{await setCat(LIST[LBI],e.target.value); showLB();};
+$("#lbOK").onclick=async()=>{await markOK(LIST[LBI]); showLB();};
+let LBTXT="";
+async function loadLBText(r){const box=$("#lbTextBox"); box.style.display="none"; LBTXT="";
+  if(r.kind!=="image"&&r.kind!=="document") return;
+  const id=r.id; const j=await (await fetch(`/api/text?id=${id}`)).json().catch(()=>({}));
+  if(LIST[LBI]?.id!==id||!j.text) return;
+  LBTXT=j.text; let h=esc(j.text);
+  const q=$("#q").value.trim();
+  if(r.snip&&q){ const k=h.indexOf(esc(r.snip.text.slice(r.snip.a,r.snip.b))); if(k>=0){const m=esc(r.snip.text.slice(r.snip.a,r.snip.b)); h=h.slice(0,k)+"<mark>"+m+"</mark>"+h.slice(k+m.length);} }
+  $("#lbText").innerHTML=h; box.style.display="flex";}
+$("#lbCopy").onclick=async()=>{try{await navigator.clipboard.writeText(LBTXT);toast("已複製文字");}catch(e){const t=document.createElement("textarea");t.value=LBTXT;document.body.append(t);t.select();document.execCommand("copy");t.remove();toast("已複製文字");}};
+$("#lbPlay").onclick=()=>fetch(`/api/open_file?id=${LIST[LBI].id}`,{method:"POST"});
+$("#lbReveal").onclick=()=>fetch(`/api/reveal?id=${LIST[LBI].id}`,{method:"POST"});
+const closeLB=()=>{$("#lb").classList.remove("on"); const v=$("#lbVid"); v.pause(); if(v.getAttribute("src")){v.removeAttribute("src"); v.load();} if(REDO){REDO=false; rerun();}};
+$("#lbX").onclick=closeLB; $("#lbL").onclick=()=>{LBI=(LBI-1+LIST.length)%LIST.length;showLB();}; $("#lbR").onclick=()=>{LBI=(LBI+1)%LIST.length;showLB();};
+document.addEventListener("keydown",e=>{if(!$("#lb").classList.contains("on"))return; if(e.key==="Escape")closeLB(); if(e.key==="ArrowLeft")$("#lbL").click(); if(e.key==="ArrowRight")$("#lbR").click();});
+// ---------- 搜尋
+const FSEL=["#fCat","#fKind","#fFrom","#fTo","#fPlace"];
+const fq=()=>["cat","kind","date_from","date_to","place"].map((k,i)=>`&${k}=${encodeURIComponent($(FSEL[i]).value)}`).join("");
+const hasF=()=>FSEL.some(s=>$(s).value);
+async function loadPlaceOptions(){const r=await (await fetch("/api/places")).json(); const sel=$("#fPlace"), v=sel.value;
+  sel.innerHTML=`<option value="">所有地點</option>`+r.places.map(p=>`<option value="${esc(p.p1)}">${esc(p.p1)}（${p.n}）</option>`+
+    p.sub.map(x=>`<option value="${esc(p.p1+"|"+x.p2)}">　${esc(x.p2)}（${x.n}）</option>`).join("")).join("")+
+    (r.none?`<option value="-">沒有地點資訊（${r.none}）</option>`:""); sel.value=v; PLACES=r;}
+let PLACES={places:[],none:0};
+function showResults(r,title,quiet){const g=$("#results");g.innerHTML="";LIST=[];
+  if(r.error){$("#resultTitle").textContent="搜尋失敗："+r.error;return;}
+  $("#resultTitle").textContent=r.length?title:"找不到符合的項目"; r.forEach(x=>{LIST.push(x);g.append(tile(x));});
+  if(!quiet) window.scrollTo({top:$("#resultBox").getBoundingClientRect().top+scrollY-70,behavior:"smooth"});}
+let RERUN=null; const resOpen=()=>$("#resultBox").style.display!=="none";
+// 結果區重新整理（改分類、改類別後，縮圖上的類別和選單會是最新的），保留捲動位置
+async function rerun(){ if(!RERUN||!resOpen()) return; const y=scrollY; await RERUN(true); window.scrollTo({top:y}); }
+async function search(quiet){const q=$("#q").value.trim(); if(!q&&!hasF()) return; RERUN=search; $("#resultBox").style.display="";
+  if(quiet!==true){$("#resultTitle").textContent=q?"搜尋中…（第一次會先載入 AI 模型）":"篩選中…"; $("#results").innerHTML="";}
+  const r=await (await fetch("/api/search?q="+encodeURIComponent(q)+fq()+(q?"":"&limit=2000"))).json();
+  showResults(r,q?`「${q}」・越前面越相關`:`符合篩選的項目（${r.length}）・新到舊`,quiet===true);}
+async function similar(f,quiet){ if(quiet!==true){closeLB(); $("#resultBox").style.display=""; $("#resultTitle").textContent="尋找相似的…"; $("#results").innerHTML="";}
+  RERUN=q=>similar(f,q);
+  const r=await (await fetch(`/api/similar?id=${f.id}`+fq())).json();
+  if(r&&r.error){toast(r.error);return;}
+  showResults(r,`和「${f.name}」相似的・越前面越像`,quiet===true);}
+// 以圖找圖：拖進搜尋框或選一張圖片（只在記憶體裡比對，不會存檔）
+async function similarFile(file,quiet){ if(!file||!/^image\//.test(file.type||"image/")) {toast("請拖入圖片檔");return;}
+  RERUN=q=>similarFile(file,q); $("#resultBox").style.display="";
+  if(quiet!==true){$("#resultTitle").textContent="尋找相似的…（第一次會先載入 AI 模型）"; $("#results").innerHTML="";}
+  const r=await (await fetch("/api/similar_upload?"+fq().slice(1),{method:"POST",body:await file.arrayBuffer()})).json();
+  showResults(r,`和「${file.name||"這張圖片"}」相似的・越前面越像`,quiet===true);}
+const sb=$("#searchBox");
+["dragenter","dragover"].forEach(ev=>sb.addEventListener(ev,e=>{e.preventDefault();sb.classList.add("drop");}));
+["dragleave","drop"].forEach(ev=>sb.addEventListener(ev,e=>{e.preventDefault();sb.classList.remove("drop");}));
+sb.addEventListener("drop",e=>{const f=e.dataTransfer.files[0]; if(f) similarFile(f);});
+document.addEventListener("dragover",e=>e.preventDefault()); document.addEventListener("drop",e=>{if(!sb.contains(e.target)) e.preventDefault();});
+$("#imgPick").onclick=()=>$("#imgFile").click();
+$("#imgFile").onchange=e=>{const f=e.target.files[0]; if(f) similarFile(f); e.target.value="";};
+$("#lbSimilar").onclick=()=>similar(LIST[LBI]);
+FSEL.forEach(s=>$(s).onchange=()=>{if(VIEW==="timeline"){lastKey="";loadTimeline();} if($("#q").value.trim()||hasF())search();});
+$("#fClear").onclick=()=>{FSEL.forEach(s=>$(s).value="");$("#resultBox").style.display="none"; if(VIEW==="timeline"){lastKey="";loadTimeline();}};
+$("#go").onclick=search; $("#q").addEventListener("keydown",e=>{if(e.key==="Enter")search();});
+$("#closeRes").onclick=()=>$("#resultBox").style.display="none";
+// ---------- 重複項目
+const KEEP={}; let FOCUS=null;
+function goDups(id){FOCUS=id; setView("dups");}
+const mb=n=>n==null?"":(n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB");
+// 建議保留：解析度最高的；但如果有解析度不差（至少一半）而明顯更清楚的（例如連拍手震），改選最清楚的
+function bestOf(files){const px=f=>(f.w||0)*(f.h||0);
+  let big=files[0];files.forEach(f=>{if(px(f)>px(big)||(px(f)===px(big)&&(f.size||0)>(big.size||0)))big=f;});
+  let sh=null;files.forEach(f=>{if(f.sharp!=null&&px(f)>=px(big)*0.5&&(!sh||f.sharp>sh.sharp))sh=f;});
+  if(sh&&big.sharp!=null&&sh.id!==big.id&&sh.sharp>big.sharp*1.15) return {id:sh.id,why:"最清晰"};
+  const others=files.filter(f=>f.id!==big.id&&f.sharp!=null);
+  if(big.sharp!=null&&others.length&&others.every(f=>big.sharp>f.sharp*1.15)&&others.every(f=>px(f)===px(big))) return {id:big.id,why:"最清晰"};
+  return {id:big.id,why:"解析度最高"};}
+async function loadDups(){
+  const r=await (await fetch("/api/dups")).json();
+  const key=JSON.stringify(["dups",r.groups.map(g=>g.files.map(f=>f.id))]); if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=r.groups.length?`${r.groups.length} 組`:"";
+  const box=$("#batches"); box.innerHTML=""; $("#more").style.display="none";
+  if(!r.groups.length){box.innerHTML=`<div class="box empty">${I("circle-check")}沒有重複的項目</div>`;return;}
+  const h=document.createElement("div");h.className="hint";h.textContent="每組勾選要留下的項目（已預先勾好最適合留下的：解析度最高，連拍時選最清晰的），再按「套用」。沒勾的會移到「待刪除」資料夾，不會刪除，之後可以移回。";box.append(h);
+  r.groups.forEach((g,gi)=>{
+    const bo=bestOf(g.files), best=bo.id, maxSh=Math.max(...g.files.map(f=>f.sharp||0));
+    g.files.forEach(f=>{if(KEEP[f.id]===undefined) KEEP[f.id]=(f.id===best);});
+    const sec=document.createElement("section");sec.className="batch";sec.dataset.ids=g.files.map(f=>f.id).join(",");
+    sec.innerHTML=`<div class="bh"><span class="t">第 ${gi+1} 組</span><span class="m">${g.files.length} 個項目</span><span class="sp"></span></div><div class="dgrid"></div>`;
+    const grid=sec.querySelector(".dgrid");
+    const paint=()=>grid.querySelectorAll(".dc").forEach(c=>{const k=KEEP[c.dataset.id];c.classList.toggle("keep",k);c.classList.toggle("drop",!k);
+      c.querySelector("input").checked=k; c.querySelector(".st").textContent=k?"留下":"移到待刪除";});
+    g.files.forEach(f=>{
+      const c=document.createElement("div");c.className="dc";c.dataset.id=f.id;
+      const rel=f.root?"原檔":(f.exact?"完全相同":(f.sim!=null?`很像 ${Math.round(f.sim*100)}%`:"很像"));
+      c.innerHTML=`<div class="im"></div><div class="info">
+        <div>${f.id===best?`<span class="tg best">建議保留・${bo.why}</span>`:""}<span class="tg">${rel}</span></div>
+        <b></b><br>${f.w?`${f.w} × ${f.h}・`:""}${mb(f.size)}${f.taken?`・${f.taken}`:""}
+        ${f.sharp!=null&&maxSh>0?`<br>清晰度 ${Math.round(f.sharp/maxSh*100)}%`:""}<br><span class="fd"></span></div>
+        <label><input type="checkbox"><span class="st"></span></label>`;
+      c.querySelector("b").textContent=f.name; c.querySelector(".fd").textContent="資料夾："+f.folder;
+      const im=c.querySelector(".im");
+      if(f.kind==="image"||f.kind==="video") im.style.backgroundImage=`url(/api/thumb?id=${f.id}&s=600)`; else im.innerHTML=I("file-text");
+      im.onclick=()=>{LIST=g.files.map(x=>({...x,category:x.category,duplicate_of:x.root?null:1}));LBI=g.files.indexOf(f);showLB();$("#lb").classList.add("on");};
+      c.querySelector("input").onchange=e=>{KEEP[f.id]=e.target.checked;paint();};
+      grid.append(c);});
+    const ap=document.createElement("button");ap.className="primary";ap.textContent="套用";
+    ap.onclick=async()=>{const keep=g.files.filter(f=>KEEP[f.id]).map(f=>f.id), remove=g.files.filter(f=>!KEEP[f.id]).map(f=>f.id);
+      if(!keep.length){toast("每組至少要留下一個");return;}
+      const x=await (await fetch("/api/dup_apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({keep,remove})})).json();
+      if(!x.ok){toast(x.error);return;} toast(remove.length?`已留下 ${x.kept} 個，${x.removed} 個移到「待刪除」`:"好的，都留下"); lastKey=""; loadBatches();};
+    const all=document.createElement("button");all.textContent="不是重複，全部留下";
+    all.onclick=async()=>{g.files.forEach(f=>KEEP[f.id]=true);paint();ap.click();};
+    sec.querySelector(".bh").append(all,ap);
+    box.append(sec); paint();
+    if(FOCUS&&g.files.some(f=>f.id===FOCUS)){setTimeout(()=>sec.scrollIntoView({behavior:"smooth",block:"start"}),50);FOCUS=null;}
+  });
+}
+async function loadRemoved(){
+  const r=await (await fetch("/api/removed")).json();
+  const key=JSON.stringify(["removed",r.files.map(f=>f.id)]); if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=r.files.length?`${r.files.length} 個項目`:"";
+  const box=$("#batches"); box.innerHTML=""; $("#more").style.display="none";
+  const sec=document.createElement("section");sec.className="batch";
+  sec.innerHTML=`<div class="bh"><span class="hint" style="margin:0;flex:1;min-width:260px">程式不會刪除任何檔案。確定不要的話，打開資料夾自己刪除（或整個清空），刪掉後這裡會自動消失；按「移回」可以放回原本的位置。</span></div><div class="grid"></div>`;
+  const ob=document.createElement("button");ob.className="primary";ob.innerHTML=I("folder-open")+"打開待刪除資料夾";ob.onclick=()=>fetch("/api/open_removed",{method:"POST"});
+  sec.querySelector(".bh").append(ob);
+  const g=sec.querySelector(".grid"); LIST=[];
+  if(!r.files.length) g.outerHTML=`<div class="box empty">${I("trash-2")}待刪除是空的</div>`;
+  r.files.forEach(f=>{f.removed=1; const t=tile({...f,mode:"removed",duplicate_of:null}); LIST.push(f);
+    const rb=document.createElement("button");rb.className="okb";rb.innerHTML=I("undo-2")+"移回";
+    rb.onclick=async e=>{e.stopPropagation();const x=await (await fetch(`/api/restore?id=${f.id}`,{method:"POST"})).json();
+      toast(x.ok?"已移回原本的位置":x.error); lastKey=""; loadBatches();};
+    t.append(rb); g.append(t);});
+  box.append(sec);
+}
+$("#more").onclick=()=>{LIMIT+=30;loadBatches();};
+// ---------- 存放位置與工具
+$("#locBtn").onclick=()=>{$("#locNow").textContent=DATA;$("#locInput").value=DATA;$("#locErr").textContent="";$("#locModal").classList.add("on");};
+$("#locCancel").onclick=()=>$("#locModal").classList.remove("on");
+$("#locPick").onclick=async()=>{$("#locErr").textContent="已打開選擇資料夾視窗（可能在瀏覽器後面）…";
+  const r=await (await fetch("/api/pick_folder",{method:"POST"})).json(); $("#locErr").textContent=r.ok?"":(r.error||""); if(r.path) $("#locInput").value=r.path;};
+$("#locSave").onclick=async()=>{const r=await (await fetch("/api/set_location",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:$("#locInput").value})})).json();
+  if(!r.ok){$("#locErr").textContent=r.error;return;} $("#locModal").classList.remove("on");
+  toast(r.restart?"已儲存，重新啟動程式後生效":"位置沒有變"); refresh();};
+$("#openData").onclick=()=>fetch("/api/open_data",{method:"POST"});
+$("#unload").onclick=()=>fetch("/api/unload",{method:"POST"}).then(()=>toast("已釋放 AI 記憶體"));
+$("#reclass").onclick=async()=>{if(!confirm("用目前的類別設定和你改過的範例，重新分類待檢視的照片與影片？（只在檔案資料夾內搬移，手動改過、已檢視的都不會動）"))return;
+  const r=await (await fetch("/api/reclassify",{method:"POST"})).json(); toast(`已排入 ${r.queued} 個項目重新分類`);};
+$("#indexPlain").onclick=async()=>{const r=await (await fetch("/api/index_plain",{method:"POST"})).json(); toast(`已排入 ${r.queued} 個項目建立索引`);};
+document.querySelectorAll("#modebox button").forEach(b=>b.onclick=()=>fetch("/api/mode?mode="+b.dataset.m,{method:"POST"}).then(refresh));
+const th=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+const paintTheme=t=>{document.documentElement.dataset.theme=t; $("#theme").innerHTML=I(t==="dark"?"sun":"moon");};
+paintTheme(th);
+$("#theme").onclick=()=>{const t=dark()?"light":"dark";paintTheme(t);localStorage.setItem("theme",t);lastKey="";$("#catNav")._k="";refresh();};
+// ---------- 時間軸
+const ymTxt=m=>m?`${m.slice(0,4)} 年 ${+m.slice(5,7)} 月`:"沒有日期";
+async function loadTimeline(){
+  const r=await (await fetch("/api/timeline?"+fq().slice(1))).json();
+  const key=JSON.stringify(["tl",fq(),r.months.map(m=>[m.month,m.count,m.files.map(f=>[f.id,f.category])])]); if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=r.months.length?`${r.months.reduce((a,m)=>a+m.count,0)} 個項目`:"";
+  const box=$("#batches"); box.innerHTML=""; $("#more").style.display="none"; LIST=[];
+  if(!r.months.length){box.innerHTML=`<div class="box empty">${I("calendar")}${hasF()?"沒有符合篩選的項目":"這裡還沒有項目"}</div>`;return;}
+  const yrs=[...new Set(r.months.map(m=>m.month.slice(0,4)||"—"))];
+  const yb=document.createElement("div");yb.className="years";
+  yrs.forEach(y=>{const b=document.createElement("button");b.textContent=y==="—"?"沒有日期":y+" 年";
+    b.onclick=()=>{const t=box.querySelector(`[data-y="${y}"]`); if(t) window.scrollTo({top:t.getBoundingClientRect().top+scrollY-110,behavior:"smooth"});}; yb.append(b);});
+  box.append(yb);
+  r.months.forEach(m=>{const sec=document.createElement("section");sec.className="batch";
+    const y=m.month.slice(0,4)||"—"; if(!box.querySelector(`[data-y="${y}"]`)) sec.dataset.y=y;
+    sec.innerHTML=`<div class="mh"><span class="t">${ymTxt(m.month)}</span><span class="c">${m.count} 個項目</span>
+      ${m.places.length?`<span class="pl">・${m.places.map(esc).join("、")}</span>`:""}<span style="flex:1"></span></div><div class="grid"></div>`;
+    if(m.count>m.files.length||SELMODE){const b=document.createElement("button");b.className="link";b.textContent=m.count>m.files.length?`顯示這個月全部 ${m.count} 個`:"顯示這個月";
+      b.onclick=()=>{ if(m.month){$("#fFrom").value=m.month;$("#fTo").value=m.month;} search(); }; sec.querySelector(".mh").append(b);}
+    const g=sec.querySelector(".grid"); m.files.forEach(f=>{LIST.push(f);g.append(tile(f));}); box.append(sec);});
+}
+// ---------- 地點
+async function loadPlaces(){
+  await loadPlaceOptions(); const r=PLACES;
+  const key=JSON.stringify(["pl",r]); if(key===lastKey) return; lastKey=key;
+  $("#lead").textContent=r.places.length?`${r.places.length} 個地區`:"";
+  const box=$("#batches"); box.innerHTML=""; $("#more").style.display="none";
+  if(!r.places.length){box.innerHTML=`<div class="box empty">${I("map-pin")}還沒有帶位置資訊的照片或影片。<br><span class="kbd">iPhone 分享時，左上角「選項」裡的「位置」要打開，照片才會帶著拍攝地點。</span></div>`;return;}
+  const h=document.createElement("div");h.className="hint";h.textContent="依照片和影片裡的 GPS 整理（離線換成地名，不會連網路）。點地點就會列出在那裡拍的項目。";box.append(h);
+  const g=document.createElement("div");g.className="plgrid";
+  const go=v=>{$("#fPlace").value=v;search();};
+  r.places.forEach(p=>{const c=document.createElement("div");c.className="box plc";
+    c.innerHTML=`<h4>${I("map-pin")}${esc(p.p1)} <span class="n">${p.n} 個</span></h4><div></div>`;
+    c.querySelector("h4").onclick=()=>go(p.p1);
+    p.sub.forEach(x=>{const b=document.createElement("span");b.className="chipb";b.innerHTML=`${esc(x.p2)} <span class="n">${x.n}</span>`;b.onclick=()=>go(p.p1+"|"+x.p2);c.querySelector("div").append(b);});
+    g.append(c);});
+  if(r.none){const c=document.createElement("div");c.className="box plc";c.innerHTML=`<h4 style="color:var(--mute)">${I("circle-help")}沒有地點資訊 <span class="n">${r.none} 個</span></h4><div class="kbd">截圖、網路下載的圖，或分享時關掉了位置</div>`;
+    c.querySelector("h4").onclick=()=>go("-"); g.append(c);}
+  box.append(g);
+}
+// ---------- 選取／匯出
+function setSelMode(on){SELMODE=on; document.body.classList.toggle("selm",on); $("#selBtn").classList.toggle("primary",on);
+  $("#selBtn").innerHTML=I(on?"x":"folder-output")+(on?"結束選取":"匯出檔案"); if(!on){SEL.clear(); closeSendPop();} paintSel(); lastKey="";}
+function paintSel(){$("#selN").textContent=`已選取 ${SEL.size} 個項目`; document.querySelectorAll(".tile[data-id]").forEach(t=>t.classList.toggle("sel",SEL.has(+t.dataset.id)));}
+function toggleSel(id,el){SEL.has(id)?SEL.delete(id):SEL.add(id); paintSel();}
+$("#selBtn").onclick=()=>{setSelMode(!SELMODE); if(SELMODE) toast("點一下要匯出的項目，可以跨批次累加；要傳電腦上的檔案，直接按「傳到手機」");};
+$("#selExit").onclick=()=>setSelMode(false);
+$("#selNone").onclick=()=>{SEL.clear();paintSel();};
+$("#selPage").onclick=()=>{const vis=$("#resultBox").style.display!=="none"?"#results .tile[data-id]":"#batches .tile[data-id]";
+  document.querySelectorAll(vis).forEach(t=>SEL.add(+t.dataset.id)); paintSel();};
+$("#selCopy").onclick=()=>{if(!SEL.size){toast("先點一下要匯出的項目");return;} $("#expErr").textContent=""; $("#expModal").classList.add("on");};
+$("#expCancel").onclick=()=>$("#expModal").classList.remove("on");
+$("#expPick").onclick=async()=>{$("#expErr").textContent="已打開選擇資料夾視窗（可能在瀏覽器後面）…";
+  const r=await (await fetch("/api/pick_folder?for=export",{method:"POST"})).json(); $("#expErr").textContent=r.ok?"":(r.error||""); if(r.path) $("#expInput").value=r.path;};
+$("#expGo").onclick=async()=>{$("#expErr").textContent=`複製中（${SEL.size} 個）…`; $("#expGo").disabled=true;
+  try{const r=await (await fetch("/api/export_copy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids:[...SEL],dest:$("#expInput").value,by:$("#selBy").value})})).json();
+    if(!r.ok){$("#expErr").textContent=r.error;return;} $("#expModal").classList.remove("on"); toast(`已複製 ${r.count} 個到「${r.folder}」`);}
+  finally{$("#expGo").disabled=false;}};
+$("#selZip").onclick=async()=>{if(!SEL.size){toast("先點一下要匯出的項目");return;} toast(`打包中（${SEL.size} 個）…`);
+  const r=await (await fetch("/api/export_zip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids:[...SEL],by:$("#selBy").value})})).json();
+  if(!r.ok){toast(r.error);return;} const a=document.createElement("a");a.href="/api/export_dl?token="+r.token;document.body.append(a);a.click();a.remove(); toast(`已打包 ${r.count} 個，瀏覽器開始下載`);};
+// ---------- 類別管理
+async function loadCats(){const r=await (await fetch("/api/categories")).json(); const box=$("#catList"); box.innerHTML="";
+  r.categories.forEach(c=>{const row=document.createElement("div");row.className="cm";
+    row.innerHTML=`<input class="em" maxlength="4"><input class="nm"><textarea class="ds"></textarea>
+      <div class="bt"><button class="primary sv">儲存</button><button class="dl">刪除</button></div>
+      ${c.special?`<div class="sp">${c.special==="screenshot"?"手機截圖會直接放進這類（可以改名，不能刪除）":"PDF、Word、TXT 會直接放進這類（可以改名，不能刪除）"}</div>`:""}`;
+    row.querySelector(".em").value=c.emoji; row.querySelector(".nm").value=c.name; row.querySelector(".ds").value=c.desc.join("\n");
+    if(c.special) row.querySelector(".dl").style.display="none";
+    row.querySelector(".sv").onclick=async()=>{const nn=row.querySelector(".nm").value.trim();
+      const x=await post("/api/cat_edit",{name:c.name,new_name:nn,desc:row.querySelector(".ds").value,emoji:row.querySelector(".em").value});
+      if(!x.ok){$("#catErr").textContent=x.error;return;} $("#catErr").textContent="";
+      toast(nn!==c.name?`已改名為「${x.name}」，搬了 ${x.moved} 個檔案`:"已儲存"); if(x.failed&&x.failed.length) $("#catErr").textContent="這些檔案正在被使用，先留在原資料夾（類別已改）："+x.failed.join("、");
+      catChanged=true; loadCats(); refresh();};
+    row.querySelector(".dl").onclick=async()=>{if(!confirm(`刪除類別「${c.name}」？\n裡面的項目會改成「未分類」並搬到未分類資料夾，不會刪除任何檔案。`))return;
+      const x=await post("/api/cat_delete",{name:c.name}); if(!x.ok){$("#catErr").textContent=x.error;return;}
+      toast(`已刪除「${c.name}」，${x.moved} 個項目改成未分類`); catChanged=true; loadCats(); refresh();};
+    box.append(row);});}
+const post=async(u,d)=>await (await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})).json();
+let catChanged=false;
+$("#catBtn").onclick=()=>{catChanged=false;$("#catErr").textContent="";loadCats();$("#catModal").classList.add("on");};
+$("#catAdd").onclick=async()=>{const n=$("#catNew");
+  const x=await post("/api/cat_add",{name:n.querySelector(".nm").value,desc:n.querySelector(".ds").value,emoji:n.querySelector(".em").value});
+  if(!x.ok){$("#catErr").textContent=x.error;return;} $("#catErr").textContent=""; n.querySelectorAll("input,textarea").forEach(e=>e.value="");
+  toast(`已新增「${x.name}」`); catChanged=true; loadCats(); refresh();};
+$("#catClose").onclick=async()=>{$("#catModal").classList.remove("on"); lastKey=""; $("#catNav")._k=""; if(catChanged){await refresh(); rerun();}
+  if(catChanged&&confirm("類別有變動。要用新的類別重新分類「待檢視」的照片和影片嗎？\n（手動改過、已檢視的都不會動）")){
+    const r=await (await fetch("/api/reclassify",{method:"POST"})).json(); toast(`已排入 ${r.queued} 個項目重新分類`);}};
+// ---------- 備份與還原
+async function loadBk(){const r=await (await fetch("/api/backups")).json(); const box=$("#bkList"); box.innerHTML="";
+  if(!r.backups.length){box.innerHTML=`<div class="kbd" style="padding:10px 0">還沒有備份</div>`;return;}
+  r.backups.forEach(b=>{const d=document.createElement("div");d.className="bk";
+    d.innerHTML=`<span class="nm"></span><span class="kbd">${b.files} 個檔案・${mb(b.size)}</span><button>還原</button>`;
+    d.querySelector(".nm").textContent=b.name;
+    d.querySelector("button").onclick=()=>restoreBk({name:b.name},b.name); box.append(d);});}
+async function restoreBk(body,label,raw){
+  if(!confirm(`要還原「${label}」嗎？\n會先自動備份目前的狀態，重新打開程式後換上。`))return;
+  const r=raw?await (await fetch("/api/backup_upload",{method:"POST",body:raw})).json():await post("/api/backup_restore",body);
+  if(!r.ok){$("#bkErr").textContent=r.error;return;} $("#bkErr").textContent="";
+  alert(`已排定還原（目前的狀態已備份成「${r.auto}」）。\n請關閉黑色視窗，再重新執行 start.bat。`); loadBk(); refresh();}
+$("#bkBtn").onclick=()=>{$("#bkErr").textContent="";loadBk();$("#bkModal").classList.add("on");};
+$("#bkClose").onclick=()=>$("#bkModal").classList.remove("on");
+$("#bkMake").onclick=async()=>{const r=await (await fetch("/api/backup_make",{method:"POST"})).json(); if(!r.ok){$("#bkErr").textContent=r.error;return;} toast("已備份："+r.name); loadBk();};
+$("#bkOpen").onclick=()=>fetch("/api/open_backups",{method:"POST"});
+$("#bkUp").onclick=()=>$("#bkFile").click();
+$("#bkFile").onchange=async e=>{const f=e.target.files[0]; if(!f) return; await restoreBk(null,f.name,await f.arrayBuffer()); e.target.value="";};
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("mousedown",e=>{if(e.target===m&&m.id!=="catModal")m.classList.remove("on");}));
+paintNav(); refresh(); setInterval(refresh,2000);
+
+// ---------- 傳到手機（本程式當 LocalSend 傳送端）
+let SD=null, SDPEER=localStorage.getItem("sdPeer")||"", SDT=null, SDJOB="";
+const ACTIVE=j=>j&&["checking","waiting","sending"].includes(j.state);
+function openSend(src){ // src: {pc:true} | {ids:[..]} | {batch,count,label}
+  SD=src; const pc=!!src.pc; $("#sdPc").style.display=pc?"":"none";
+  $("#sdTitle").textContent=pc?"把電腦上的檔案傳到手機":"傳回手機";
+  $("#sdWhat").innerHTML=pc?"":src.batch?`要傳：「${esc(src.label)}」這批的 ${src.count} 個項目。傳送前會先核對檔案和收到時一樣。`:`要傳：選取的 ${src.ids.length} 個項目。傳送前會先核對檔案和收到時一樣。`;
+  $("#sendModal").classList.add("on"); $("#sdJob")._k="";
+  fetch("/api/send/clear",{method:"POST"}).then(sdPoll); fetch("/api/send/discover",{method:"POST"});}  // 上一次已結束的結果先收起
+async function sdPoll(){clearTimeout(SDT);
+  let r; try{r=await (await fetch("/api/send/state")).json();}catch(e){SDT=setTimeout(sdPoll,2000);return;}
+  const open=$("#sendModal").classList.contains("on"), j=r.job;
+  const chip=$("#sendChip"); chip.style.display=ACTIVE(j)&&!open?"":"none";
+  if(ACTIVE(j)) chip.querySelector("span").textContent=j.state==="sending"&&j.total?`傳送中 ${Math.floor(j.sent/j.total*100)}%`:j.state==="waiting"?"等手機接受":"核對中";
+  if(open){sdPaintPeers(r.peers,r.scanning); sdPaintStage(r.stage); sdPaintJob(j);}
+  if(open||ACTIVE(j)) SDT=setTimeout(sdPoll,ACTIVE(j)?600:1500);
+  else if(SDJOB&&j.state!=="idle"&&SDJOB===j.id){SDJOB=""; toast(j.message);}}
+function sdPaintPeers(peers,scanning){const box=$("#sdPeers"), key=JSON.stringify([peers.map(p=>[p.fingerprint,p.alias,p.ip]),SDPEER,scanning]);
+  if(box._k===key) return; box._k=key; box.innerHTML="";
+  $("#sdScan").innerHTML=I("radar")+(scanning?"掃描中…":"掃描整個網路"); $("#sdScan").disabled=!!scanning;
+  if(!peers.length){box.innerHTML=`<div class="nopeer">${scanning?"正在掃描網路…":"還沒看到手機。請在手機打開 LocalSend，停在畫面上，再按「重新搜尋」。"}</div>`; return;}
+  if(!peers.some(p=>p.fingerprint===SDPEER)) SDPEER=peers.length===1?peers[0].fingerprint:"";
+  peers.forEach(p=>{const d=document.createElement("div"); d.className="peer"+(p.fingerprint===SDPEER?" on":"");
+    d.innerHTML=`${I(p.type==="desktop"||p.type==="laptop"?"monitor":"smartphone")}<div><b></b><div class="kbd"></div></div><span class="kbd">${esc(p.ip)}</span>`;
+    d.querySelector("b").textContent=p.alias; d.querySelector("div .kbd").textContent=p.model||"";
+    d.onclick=()=>{SDPEER=p.fingerprint; localStorage.setItem("sdPeer",SDPEER); box._k=""; sdPoll();}; box.append(d);});}
+function sdPaintStage(items){ if(!SD||!SD.pc) return; SD.n=items.length; // 待傳數量每次都同步，不受畫面快取影響
+  const box=$("#sdList"), key=JSON.stringify(items); if(box._k===key) return; box._k=key; box.innerHTML="";
+  if(!items.length) return;
+  const tot=items.reduce((a,b)=>a+(b.size||0),0);
+  const h=document.createElement("div"); h.className="sdh"; h.innerHTML=`<b>待傳 ${items.length} 個・${gb(tot)}</b><span class="sp"></span><button class="link">全部移除</button>`;
+  h.querySelector("button").onclick=async()=>{await fetch("/api/send/unstage",{method:"POST",body:JSON.stringify({all:true})}); sdPoll();}; box.append(h);
+  items.slice(0,300).forEach(it=>{const r=document.createElement("div"); r.className="r";
+    r.innerHTML=`${I(it.temp?"upload":"file-text")}<span class="nm"></span><span class="kbd"></span><span class="kbd">${gb(it.size)}</span><button title="從清單移除（不會刪除檔案）">${I("x")}</button>`;
+    r.querySelector(".nm").textContent=it.name; r.querySelectorAll(".kbd")[0].textContent=it.temp?"拖進來的":it.folder;
+    r.querySelector("button").onclick=async()=>{await fetch("/api/send/unstage",{method:"POST",body:JSON.stringify({ids:[it.id]})}); sdPoll();}; box.append(r);});
+  if(items.length>300){const m=document.createElement("div");m.className="kbd";m.textContent=`還有 ${items.length-300} 個`;box.append(m);}}
+function sdPaintJob(j){const box=$("#sdJob"), act=ACTIVE(j); if(!act) SDJOB="";
+  $("#sdGo").style.display=act?"none":""; $("#sdClose").textContent=act?"在背景繼續":"關閉";
+  if(!j||j.state==="idle"){box.className="sdjob"; box._k=""; return;}
+  const key=JSON.stringify(j); if(box._k===key) return; box._k=key;
+  const pc=j.total?Math.floor(j.sent/j.total*100):0, err=j.state==="error";
+  const list=(a,t)=>a&&a.length?`<div class="kbd">${t}</div><ul>${a.slice(0,8).map(x=>`<li>${esc(x.name)}：${esc(x.why)}</li>`).join("")}${a.length>8?`<li>還有 ${a.length-8} 個</li>`:""}</ul>`:"";
+  box.className="sdjob on"+(err?" err":"");
+  box.innerHTML=`<h4></h4>${j.state==="sending"?`<span class="prog"><b style="width:${pc}%"></b></span><div class="kbd">${j.done} / ${j.count} 個・${gb(j.sent)} / ${gb(j.total)}${j.current?"・"+esc(j.current):""}</div>`:
+    j.state==="checking"?`<div class="kbd">${j.current?esc(j.current):""}</div>`:""}
+    ${list(j.skipped,"沒有傳（請確認檔案）：")}${list(j.failed,"傳送失敗：")}
+    <div class="row2" style="justify-content:flex-start">${act?`<button class="cx">${I("x")}取消</button>`:`<button class="ok">好</button>`}</div>`;
+  box.querySelector("h4").textContent=j.state==="done"?"✓ "+j.message:j.message;
+  const cx=box.querySelector(".cx"); if(cx) cx.onclick=async()=>{await fetch("/api/send/cancel",{method:"POST"}); sdPoll();};
+  const ok=box.querySelector(".ok"); if(ok) ok.onclick=async()=>{await fetch("/api/send/clear",{method:"POST"}); box._k=""; sdPoll();};}
+$("#sdGo").onclick=async()=>{ if(!SD) return; if(!SDPEER){toast("先選要傳給哪支手機");return;}
+  if(SD.pc&&!SD.n){toast("先加入要傳的檔案");return;}
+  const body=SD.pc?{source:"stage"}:SD.batch?{batch:SD.batch}:{ids:SD.ids};
+  const r=await (await fetch("/api/send/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,peer:SDPEER})})).json();
+  if(!r.ok){toast(r.error);return;} SDJOB=r.id; $("#sdJob")._k=""; sdPoll();};
+$("#sdClose").onclick=()=>{$("#sendModal").classList.remove("on"); sdPoll();};
+$("#sdRefresh").onclick=async()=>{await fetch("/api/send/discover",{method:"POST"}); toast("已重新搜尋，手機要開著 LocalSend"); setTimeout(sdPoll,1200);};
+$("#sdScan").onclick=async()=>{await fetch("/api/send/discover?scan=1",{method:"POST"}); sdPoll();};
+const sdPick=async kind=>{toast("請在跳出的視窗中選擇"); const r=await (await fetch("/api/send/pick?kind="+kind,{method:"POST"})).json();
+  if(!r.ok){toast(r.error);return;} if(r.added||r.skipped) toast(`已加入 ${r.added} 個`+(r.skipped?`，略過 ${r.skipped} 個（已在清單或不能傳）`:"")); $("#sdList")._k=""; sdPoll();};
+$("#sdFiles").onclick=()=>sdPick("files"); $("#sdFolder").onclick=()=>sdPick("folder");
+function sdUpload(f){return new Promise(res=>{const x=new XMLHttpRequest(); x.open("POST","/api/send/drop?name="+encodeURIComponent(f.name));
+  x.setRequestHeader("X-XQ-Token",XQT); x.setRequestHeader("Content-Type","application/octet-stream");
+  x.upload.onprogress=e=>{if(e.lengthComputable) toast(`暫存「${f.name}」${Math.floor(e.loaded/e.total*100)}%`);};
+  x.onload=()=>{let r={}; try{r=JSON.parse(x.responseText);}catch(e){} if(!r.ok) toast(r.error||"加入失敗"); res();}; x.onerror=()=>{toast("加入失敗");res();}; x.send(f);});}
+{const dz=$("#sdDrop");
+ ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("drop");}));
+ ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("drop");}));
+ dz.addEventListener("drop",async e=>{const fs=[...e.dataTransfer.files].filter(f=>f.size>0||f.type); if(!fs.length){toast("資料夾請用「選擇資料夾…」");return;}
+   for(const f of fs) await sdUpload(f); toast(`已加入 ${fs.length} 個`); $("#sdList")._k=""; sdPoll();});}
+$("#sendChip").onclick=()=>{$("#sendModal").classList.add("on"); sdPoll();};
+// 「傳到手機」：先選來源（從檔案庫傳回／從電腦上傳）
+function closeSendPop(){$("#sendPop").classList.remove("on");}
+$("#selSend").onclick=e=>{e.stopPropagation(); const pop=$("#sendPop");
+  if(pop.classList.contains("on")) return closeSendPop();
+  $("#toast").classList.remove("on");   // 打開選單時先收起提示，避免疊在一起
+  $("#spN").textContent=SEL.size?`已選 ${SEL.size} 個`:"先點選項目"; $("#spLib").classList.toggle("off",!SEL.size);
+  pop.classList.add("on"); const r=$("#selSend").getBoundingClientRect(), w=pop.offsetWidth;
+  pop.style.left=Math.max(12,Math.min(innerWidth-w-12,r.right-w))+"px"; pop.style.bottom=(innerHeight-r.top+12)+"px";};
+$("#spLib").onclick=()=>{if(!SEL.size){closeSendPop(); toast("先點一下要傳回手機的項目，再按「傳到手機」");return;} closeSendPop(); openSend({ids:[...SEL]});};
+$("#spPc").onclick=()=>{closeSendPop(); openSend({pc:true});};
+document.addEventListener("mousedown",e=>{if(!e.target.closest("#sendPop,#selSend")) closeSendPop();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeSendPop();});
+$("#lbSend").onclick=()=>{const r=LIST[LBI]; if(r) openSend({ids:[r.id]});};
+sdPoll();
+</script>
+</body>
+</html>

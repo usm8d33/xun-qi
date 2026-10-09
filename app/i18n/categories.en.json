@@ -1,0 +1,115 @@
+{
+  "_note": "Default categories for a new files folder created in English. Copied to categories.json once; edit categories in the app (Tools › Manage Categories).",
+  "categories": [
+    {
+      "name": "Food",
+      "emoji": "🍜",
+      "desc": [
+        "a photo of a meal or dish of food",
+        "restaurant food, noodles, rice, meat, sushi, street food",
+        "a plate of food on a table"
+      ]
+    },
+    {
+      "name": "Drinks & Desserts",
+      "emoji": "🧋",
+      "desc": [
+        "a photo of a drink, coffee, bubble tea or juice",
+        "a photo of a dessert, cake, ice cream or pastry",
+        "a cup of coffee or a sweet treat"
+      ]
+    },
+    {
+      "name": "Scenery",
+      "emoji": "🏞️",
+      "desc": [
+        "a landscape photo of nature: mountains, sea, beach, lake or sky",
+        "scenic outdoor view, sunset, waterfall, forest path, hiking trail",
+        "beautiful natural scenery"
+      ]
+    },
+    {
+      "name": "Cityscape",
+      "emoji": "🏙️",
+      "desc": [
+        "a photo of a city street, buildings, skyline or night market",
+        "urban scene, shops, road, architecture, night city lights",
+        "a street with buildings and stores"
+      ]
+    },
+    {
+      "name": "People",
+      "emoji": "🧑",
+      "desc": [
+        "a photo of a person as the main subject: a man, woman or child",
+        "a portrait or selfie of someone's face",
+        "a person standing or walking, people photo"
+      ]
+    },
+    {
+      "name": "Group & Party",
+      "emoji": "🎉",
+      "desc": [
+        "a group photo of several people together",
+        "friends or family gathering, party, wedding, team photo",
+        "many people posing together"
+      ]
+    },
+    {
+      "name": "Pets & Animals",
+      "emoji": "🐾",
+      "desc": [
+        "a photo of a pet, a cat or a dog",
+        "a photo of an animal or bird",
+        "a cute pet at home"
+      ]
+    },
+    {
+      "name": "Plants & Flowers",
+      "emoji": "🌸",
+      "desc": [
+        "a photo of flowers or blossoms",
+        "a photo of plants, trees, leaves or a garden",
+        "a potted plant or bouquet"
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "emoji": "🚗",
+      "desc": [
+        "a photo of a vehicle: car, scooter, motorcycle, bicycle",
+        "a photo of a train, bus, airplane, station or airport",
+        "cars, motorbikes, trains and planes"
+      ]
+    },
+    {
+      "name": "Documents & Receipts",
+      "emoji": "🧾",
+      "desc": [
+        "a photo of a paper document, receipt, invoice or form",
+        "handwritten notes, a notebook page, a whiteboard, printed text",
+        "a page of text, a bill or a ticket"
+      ]
+    },
+    {
+      "name": "Shopping",
+      "emoji": "🛍️",
+      "desc": [
+        "a product photo: shoes, clothes, bag, gadget",
+        "items in a store or supermarket shelf, shopping",
+        "a product for sale"
+      ]
+    },
+    {
+      "name": "Screenshots",
+      "emoji": "📱",
+      "desc": [
+        "a screenshot of a phone or computer screen",
+        "app user interface, chat messages, social media, web page, map app",
+        "a phone screen capture"
+      ]
+    }
+  ],
+  "screenshot_category": "Screenshots",
+  "document_category": "Documents & Receipts"
+}

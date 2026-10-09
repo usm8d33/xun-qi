@@ -2,6 +2,10 @@
 
 > every photo finds its nest
 
+中文 | [English](README.en.md)
+
+![尋棲特色](docs/screenshots/features.png)
+
 手機用 **LocalSend** App 傳照片、影片、文件到 Windows 電腦，尋棲會直接接收（相容 LocalSend 協定 v2），
 用 Google 的 **EmbeddingGemma 2** 自動分類，之後可以用一句話搜尋、以圖找圖、找出重複檔。全部在你的電腦上執行，不上傳雲端。
 

@@ -14,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .lang import t as _t
+
 log = logging.getLogger("ocr")
 
 
@@ -119,15 +121,15 @@ class OCR:
     @property
     def state(self):
         if self.fake:
-            return "測試模式"
+            return _t("model.test")
         if not self.cfg.ocr_enabled:
-            return "已關閉"
+            return _t("ocr.off")
         d, r = find_models(self.cfg.ocr_dir, getattr(self.cfg, "ocr_size", "server"))
         if not (d and r):
-            return "沒有模型"
+            return _t("ocr.no_model")
         if not _has_ort():
-            return "缺少 onnxruntime（請重跑 setup.bat）"
-        return f"已載入（{self.device}）" if self.det is not None else "未載入（需要時自動載入）"
+            return _t("ocr.no_ort")
+        return _t("model.loaded", dev=self.device) if self.det is not None else _t("model.not_loaded")
 
     # ---------------- 載入 / 卸載 ----------------
     def _load(self):
@@ -135,7 +137,7 @@ class OCR:
             return
         det_p, rec_p = find_models(self.cfg.ocr_dir, getattr(self.cfg, "ocr_size", "server"))
         if not (det_p and rec_p):
-            raise FileNotFoundError(f"找不到 OCR 模型，請把 det／rec 兩個 .onnx 放到 {self.cfg.ocr_dir}")
+            raise FileNotFoundError(_t("ocr.missing", path=self.cfg.ocr_dir))
         cuda = False
         if not self.cfg.force_cpu:
             try:
@@ -162,7 +164,7 @@ class OCR:
                 return ort.InferenceSession(str(p), so, providers=provs)
             except Exception as e:  # noqa
                 if provs[0] != "CPUExecutionProvider":
-                    log.warning("OCR 無法用顯示卡，改用 CPU：%s", e)
+                    log.warning(_t("log.ocr_gpu_fallback", err=e))
                     return ort.InferenceSession(str(p), so, providers=["CPUExecutionProvider"])
                 raise
         self.det, self.rec = mk(det_p), mk(rec_p)
@@ -172,17 +174,18 @@ class OCR:
         if not chars or len(chars) < 100:
             dict_p = next(iter(sorted(self.cfg.ocr_dir.glob("*.txt"))), None)
             if not dict_p:
-                raise FileNotFoundError("OCR 辨識模型裡沒有字典，也找不到字典 .txt")
-            chars = dict_p.read_text(encoding="utf-8").split("\n")
+                raise FileNotFoundError(_t("ocr.no_dict"))
+            with open(dict_p, encoding="utf-8") as fh:
+                chars = fh.read().split("\n")
         self.chars = ["<blank>"] + [c for c in chars] + [" "]
-        log.info("OCR 模型載入完成（%s，%s／%s），花了 %.1f 秒", self.device, det_p.name, rec_p.name, time.time() - t)
+        log.info(_t("log.ocr_loaded", dev=self.device, det=det_p.name, rec=rec_p.name, sec=f"{time.time() - t:.1f}"))
 
     def unload(self):
         with self.lock:
             if self.det is None:
                 return
             self.det = self.rec = None
-            log.info("OCR 模型已卸載")
+            log.info(_t("log.ocr_unloaded"))
 
     def _idle_watch(self):
         while True:

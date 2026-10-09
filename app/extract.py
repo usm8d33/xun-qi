@@ -6,13 +6,15 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
+from .lang import t as _t
+
 log = logging.getLogger("extract")
 
 try:
     import pillow_heif
     pillow_heif.register_heif_opener()  # iPhone 的 HEIC
 except Exception:  # noqa
-    log.warning("沒有 pillow-heif，HEIC 照片將無法分析")
+    log.warning(_t("log.no_heif"))
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
 VIDEO_EXT = {".mov", ".mp4", ".m4v", ".avi", ".mkv", ".3gp", ".webm"}
@@ -142,7 +144,7 @@ def pdf_scan_image(path: Path):
             im = ImageOps.exif_transpose(f).convert("RGB")
         return im
     except Exception as e:  # noqa
-        log.debug("讀不出 PDF 圖片 %s：%s", path.name, e)
+        log.debug("cannot read PDF image %s: %s", path.name, e)
         return None
 
 
@@ -176,7 +178,7 @@ def document_text(path: Path, limit=6000) -> str:
             else:
                 text = raw.decode("utf-8", "ignore")
     except Exception as e:  # noqa
-        log.warning("讀不出文件文字 %s：%s", path.name, e)
+        log.warning(_t("log.doc_text_failed", name=path.name, err=e))
         text = ""
     return text.strip()[:limit]
 

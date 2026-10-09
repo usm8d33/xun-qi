@@ -1,4 +1,5 @@
 # Windows 批次檔和 PowerShell 一定要用 CRLF，否則下載後無法執行
 *.bat eol=crlf
+*.cmd eol=crlf
 *.ps1 eol=crlf
 *.gz binary

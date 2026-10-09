@@ -1,0 +1,16 @@
+Xun-Qi 尋棲
+Copyright 2026 The Xun-Qi Authors
+
+本程式碼以 Apache License 2.0 授權（見 LICENSE）。
+
+本程式相容 LocalSend 協定，但不是 LocalSend 官方產品，也沒有與 LocalSend 合作。
+
+程式內附或會下載的第三方資料與模型：
+- EmbeddingGemma 2（Google DeepMind）：Apache License 2.0。使用時也須遵守 Gemma 禁止使用政策
+  https://ai.google.dev/gemma/prohibited_use_policy
+  輕量版使用 onnx-community/embeddinggemma-2-ONNX 的轉檔（Apache License 2.0）。
+  模型不包含在本程式中，由 download_model.bat 從 Hugging Face 下載。
+- PP-OCRv5（PaddlePaddle，經 RapidAI/RapidOCR 轉成 ONNX）：Apache License 2.0。由 download_model.bat 下載。
+- app/places.json.gz：由 GeoNames（https://www.geonames.org/）資料製作，CC BY 4.0。
+- app/t2s.json.gz：由 OpenCC（https://github.com/BYVoid/OpenCC）字典製作，Apache License 2.0。
+- 網頁介面圖示：Lucide（https://lucide.dev/），ISC License。
